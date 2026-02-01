@@ -1,0 +1,49 @@
+{
+  "name": "recruitment-tool-backend",
+  "version": "1.0.0",
+  "description": "AI-Powered Recruitment Tool Backend",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "watch": "tsc --watch"
+  },
+  "keywords": [
+    "recruitment",
+    "ai",
+    "job",
+    "candidates"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.1.3",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-async-errors": "^3.1.1",
+    "jsonwebtoken": "^9.0.0",
+    "mammoth": "^1.6.0",
+    "mongodb": "^7.0.0",
+    "mongoose": "^7.5.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.13",
+    "pdf-parse": "^1.1.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.20",
+    "@types/jsonwebtoken": "^9.0.4",
+    "@types/multer": "^1.4.7",
+    "@types/node": "^20.8.0",
+    "@types/nodemailer": "^7.0.9",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}

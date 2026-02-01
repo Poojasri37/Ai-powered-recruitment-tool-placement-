@@ -1,0 +1,155 @@
+import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { Candidate } from '../models/Candidate';
+import { Job } from '../models/Job';
+import { authenticateToken } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
+import { parseResume } from '../utils/parseResume';
+import { calculateMatchScore } from '../utils/matching';
+
+interface AuthRequest extends Request {
+  userId?: string;
+  file?: Express.Multer.File;
+}
+
+const router = Router();
+
+// Create uploads directory if it doesn't exist
+const uploadDir = process.env.UPLOAD_DIR || './uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
+  const allowedMimes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new AppError(400, 'Only PDF and DOCX files are allowed'));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880') },
+});
+
+// Upload resume
+router.post(
+  '/upload',
+  authenticateToken,
+  upload.single('resume'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        return next(new AppError(400, 'Please upload a resume file'));
+      }
+
+      const { jobId } = req.body;
+      if (!jobId) {
+        return next(new AppError(400, 'Job ID is required'));
+      }
+
+      const job = await Job.findById(jobId);
+      if (!job) {
+        return next(new AppError(404, 'Job not found'));
+      }
+
+      // Parse resume
+      const parsedData = await parseResume(req.file.path);
+
+      // Calculate match score
+      const matchScore = calculateMatchScore(parsedData.skills, job.requiredSkills);
+
+      // Create candidate
+      const candidate = new Candidate({
+        ...parsedData,
+        resumeFile: req.file.path,
+        job: jobId,
+        matchScore,
+      });
+
+      await candidate.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Resume uploaded and parsed successfully',
+        candidate,
+      });
+    } catch (error) {
+      // Clean up uploaded file on error
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => {
+          if (err) console.error('Error deleting file:', err);
+        });
+      }
+      next(error);
+    }
+  }
+);
+
+// Get candidates for a job
+router.get('/:jobId', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const job = await Job.findById(req.params.jobId);
+    if (!job) {
+      return next(new AppError(404, 'Job not found'));
+    }
+
+    const candidates = await Candidate.find({ job: req.params.jobId }).sort({
+      matchScore: -1,
+    });
+
+    const totalCandidates = candidates.length;
+    const avgScore =
+      candidates.length > 0
+        ? Math.round(
+            candidates.reduce((sum, c) => sum + (c.matchScore || 0), 0) / candidates.length
+          )
+        : 0;
+    const topCandidates = candidates.slice(0, 3);
+
+    res.status(200).json({
+      success: true,
+      totalCandidates,
+      averageScore: avgScore,
+      topCandidates,
+      allCandidates: candidates,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get single candidate
+router.get('/detail/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const candidate = await Candidate.findById(req.params.id).populate('job');
+
+    if (!candidate) {
+      return next(new AppError(404, 'Candidate not found'));
+    }
+
+    res.status(200).json({
+      success: true,
+      candidate,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;
