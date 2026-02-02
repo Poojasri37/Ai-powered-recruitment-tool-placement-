@@ -56,6 +56,19 @@ export default function InterviewPage() {
   const [codeAnswer, setCodeAnswer] = useState('');
   // const [showCodeEditor, setShowCodeEditor] = useState(false); // Removed, derived from question type
 
+  // Refs for checking state inside event listeners without closure staleness
+  const currentQuestionIndexRef = useRef(0);
+  const questionsRef = useRef<Question[]>([]);
+
+  // Keep refs synced with state
+  useEffect(() => {
+    currentQuestionIndexRef.current = currentQuestionIndex;
+  }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
+
   const [isRecording, setIsRecording] = useState(false);
   const [interviewDuration, setInterviewDuration] = useState(0);
   const [isListening, setIsListening] = useState(false);
@@ -64,12 +77,28 @@ export default function InterviewPage() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
-  const synthesisRef = useRef<any>(null);
+  const synthesisRef = useRef<any>(null); // Not really used for speech synthesis instance, but kept for consistency
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     fetchSessionData();
+    // Cleanup on unmount
+    return () => {
+      stopInterview();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      window.speechSynthesis.cancel();
+    };
   }, [sessionId]);
+
+  // Ensure video stream is attached when video element mounts or stream updates
+  useEffect(() => {
+    if (videoRef.current && mediaStreamRef.current) {
+      videoRef.current.srcObject = mediaStreamRef.current;
+      videoRef.current.play().catch(e => console.error("Error playing video:", e));
+    }
+  }, [interviewStarted, cameraEnabled]);
 
   const fetchSessionData = async () => {
     try {
@@ -198,13 +227,14 @@ export default function InterviewPage() {
     try {
       // Request camera and mic permissions
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+        audio: { echoCancellation: true, noiseSuppression: true },
       });
 
       mediaStreamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.error("Error playing video:", e));
       }
       setCameraEnabled(true);
       setMicEnabled(true);
@@ -220,10 +250,17 @@ export default function InterviewPage() {
 
         recognitionRef.current.onstart = () => {
           setIsListening(true);
-          setCurrentAnswer(''); // Clear previous answer
+          // Only clear if it's a new question start, otherwise we might clear midway if it restarts
+          // setCurrentAnswer(''); 
         };
 
         recognitionRef.current.onresult = (event: any) => {
+          // If the AI is speaking, ignore everything and stop listening
+          if (window.speechSynthesis.speaking) {
+            recognitionRef.current.stop();
+            return;
+          }
+
           let interimTranscript = '';
           let finalTranscript = '';
 
@@ -238,47 +275,36 @@ export default function InterviewPage() {
 
           // Update with final + interim text
           const fullTranscript = finalTranscript || interimTranscript;
-          setCurrentAnswer(fullTranscript.trim());
-
-          // Auto-submit if we have final transcription and silence is detected
-          if (finalTranscript && !recognitionRef.current?.recognizing) {
-            // Auto-submit after 2 seconds of silence
-            setTimeout(() => {
-              if (fullTranscript.trim()) {
-                // Auto proceed to next question
-                const nextIndex = currentQuestionIndex + 1;
-                if (nextIndex < questions.length) {
-                  setCurrentQuestionIndex(nextIndex);
-                  setCurrentAnswer('');
-                  setError('');
-                  setTimeout(() => speakQuestion(nextIndex), 500);
-                }
-              }
-            }, 2000);
+          if (fullTranscript.trim()) {
+            setCurrentAnswer(prev => {
+              // Determine if we should append or replace based on context
+              // For simplicity, we'll replace if the new result is comprehensive
+              // But better to just set it as the current recognition buffer
+              return fullTranscript.trim();
+            });
           }
+
+          // Auto-submit logic moved to a manual trigger or more careful silence detection
+          // The previous 2s silence detection inside onresult is flaky because onresult fires repeatedly
+          // We'll rely on a manual submit or a more robust silence detector if needed.
+          // For now, disabling auto-submit to prevent "barge-in" errors and premature skipping
+          // Users prefer control over when they are done.
         };
 
         recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          if (event.error === 'no-speech') {
-            // Ignore no-speech errors, just keep listening if needed
-            return;
-          }
-          if (event.error === 'aborted') {
-            return;
-          }
-          setError(`Voice recognition error: ${event.error}`);
+          if (event.error === 'no-speech') return;
+          if (event.error === 'aborted') return;
+          console.error('Voice warning:', event.error);
           setIsListening(false);
+          // Auto-restart if it wasn't aborted intentionally
+          // if (interviewStarted && !isSpeaking) startListening();
         };
 
         recognitionRef.current.onend = () => {
-          // Only auto-restart if we think we should still be listening
-          // But usually better to let user manually restart to avoid loops
           setIsListening(false);
         };
       } else {
         console.warn("Speech Recognition API not supported in this browser.");
-        // Don't block the interview, just disable mic features gracefully
         setMicEnabled(false);
       }
 
@@ -303,6 +329,7 @@ export default function InterviewPage() {
       document.addEventListener('cut', preventCopyPaste as any);
 
       // Speak the first question
+      // IMPORTANT: Use the ref to ensure we reference the correct questions array
       setTimeout(() => speakQuestion(0), 1000);
     } catch (err) {
       setError('Failed to access camera/mic. Please check permissions.');
@@ -310,33 +337,46 @@ export default function InterviewPage() {
   };
 
   const speakQuestion = (questionIndex: number) => {
-    if (questionIndex >= questions.length) return;
+    // Stop listening before AI speaks to prevent echo
+    stopListening();
 
-    const question = questions[questionIndex];
+    // Safety check using refs
+    if (questionIndex >= questionsRef.current.length) return;
+
+    const question = questionsRef.current[questionIndex];
+
+    // cancel any current speaking
+    window.speechSynthesis.cancel();
+
     const utterance = new SpeechSynthesisUtterance(question.question);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
 
     setIsSpeaking(true);
+
     utterance.onend = () => {
       setIsSpeaking(false);
       // Auto-start listening after AI finishes speaking
-      setTimeout(() => startListening(), 500);
+      // Add a small delay to ensure speaker echo has dissipated
+      setTimeout(() => startListening(), 800);
     };
 
     window.speechSynthesis.speak(utterance);
   };
 
   const startListening = () => {
-    if (!recognitionRef.current) return;
+    if (!recognitionRef.current || isSpeaking) return;
+
     setIsListening(true);
-    setCurrentAnswer('');
+    setCurrentAnswer(''); // Reset for new answer segment
     setError('');
+
     try {
+      // recognitionRef.current.abort(); // clear any previous buffer
       recognitionRef.current.start();
     } catch (err) {
-      console.error('Error starting speech recognition:', err);
+      // Ignored: already started
     }
   };
 
@@ -359,10 +399,15 @@ export default function InterviewPage() {
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
     }
+    stopListening();
+    window.speechSynthesis.cancel();
   };
 
   const submitAnswer = () => {
-    const currentQuestion = questions[currentQuestionIndex];
+    // Always use refs to get the latest state inside callbacks
+    const idx = currentQuestionIndexRef.current;
+    const currentQuestion = questionsRef.current[idx];
+
     if (!currentQuestion) return;
 
     stopListening();
@@ -372,15 +417,14 @@ export default function InterviewPage() {
 
     if (!answer.trim()) {
       setError(`Please provide an answer before continuing. ${isCodingQuestion ? 'Type your code' : 'Speak again or type your answer'}.`);
-      // Don't exit - stay on the same question
       return;
     }
 
     // Clear previous error
     setError('');
 
-    setResponses([
-      ...responses,
+    setResponses(prev => [
+      ...prev,
       {
         question: currentQuestion.question,
         answer,
@@ -391,14 +435,14 @@ export default function InterviewPage() {
     // Clear answer
     setCurrentAnswer('');
     setCodeAnswer('');
-    // setShowCodeEditor(false); // No longer using this state for logic
 
+    // Move to next question using the REF + 1
+    const nextIndex = idx + 1;
 
-    // Move to next question
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    if (nextIndex < questionsRef.current.length) {
+      setCurrentQuestionIndex(nextIndex);
       // Speak the next question
-      setTimeout(() => speakQuestion(currentQuestionIndex + 1), 1000);
+      setTimeout(() => speakQuestion(nextIndex), 1000);
     } else {
       // Interview complete
       submitInterview();

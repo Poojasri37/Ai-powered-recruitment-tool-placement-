@@ -1,13 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Users, TrendingUp } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import JobCard from '../components/JobCard';
 import DashboardStats from '../components/DashboardStats';
+import JobCard from '../components/JobCard';
+import TalentMatchUpload from '../components/TalentMatchUpload';
+import { DashboardAnalytics } from '../components/dashboard/DashboardAnalytics';
+import { ActivityTracker } from '../components/dashboard/ActivityTracker';
+import { InterviewCalendar } from '../components/dashboard/InterviewCalendar';
+
+export interface Job {
+  _id: string;
+  title: string;
+  department: string;
+  location: string;
+  type: string;
+  applicationCount: number;
+  status: 'active' | 'draft' | 'closed';
+  createdAt: string;
+}
 
 export const DashboardPage: React.FC = () => {
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchJobs();
@@ -16,6 +32,7 @@ export const DashboardPage: React.FC = () => {
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem('token');
+      // Use the 'analyst' or 'recruiter' endpoint logic - assuming /jobs returns jobs for this user
       const response = await fetch('http://localhost:5000/api/jobs', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -23,7 +40,7 @@ export const DashboardPage: React.FC = () => {
       if (!response.ok) throw new Error('Failed to fetch jobs');
 
       const data = await response.json();
-      setJobs(data.jobs || []);
+      setJobs(data.jobs || data.data || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -31,55 +48,104 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const filteredJobs = jobs.filter(job =>
+    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.department.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Calculate generic stats
+  const stats = {
+    totalApplications: jobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0),
+    interviewsScheduled: Math.floor(jobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0) * 0.2), // Mock percentage
+    hired: Math.floor(jobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0) * 0.05), // Mock percentage
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="p-8 text-center">
+      <div className="text-red-500 mb-4">Error: {error}</div>
+      <button onClick={fetchJobs} className="bg-blue-600 text-white px-4 py-2 rounded">Retry</button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">Manage your recruitment pipeline</p>
+      {/* Detailed Analytics Section */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+              Recruiter Dashboard
+            </h1>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search jobs..."
+                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Link
+                to="/job-form"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-medium transition-all shadow-lg shadow-blue-200"
+              >
+                <Plus size={18} /> Post New Job
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/job-form"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-          >
-            <Plus size={20} /> Create Job
-          </Link>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Stats */}
-        <DashboardStats jobs={jobs} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* Jobs List */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Job Postings</h2>
+        {/* Top Stats Cards */}
+        <DashboardStats stats={stats} />
 
-          {loading ? (
-            <p className="text-gray-600">Loading...</p>
-          ) : error ? (
-            <p className="text-red-600">{error}</p>
-          ) : jobs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <TrendingUp size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-4">No job postings yet</p>
-              <Link
-                to="/job-form"
-                className="text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                Create your first job posting
-              </Link>
+        {/* Analytics Charts */}
+        <DashboardAnalytics jobs={jobs} applications={[]} />
+
+        {/* Middle Section: Calendar & Activity */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+          <div className="xl:col-span-2 space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-800">Active Job Postings</h2>
+              <div className="flex gap-2">
+                <button className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <Filter size={16} /> Filter
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {jobs.map((job) => (
-                <JobCard key={job._id} job={job} onUpdate={fetchJobs} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredJobs.map((job) => (
+                <JobCard key={job._id} job={job} />
               ))}
+              {filteredJobs.length === 0 && (
+                <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
+                  No jobs found matching your search.
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          <div className="space-y-6">
+            {/* Upcoming Interviews Calendar */}
+            <InterviewCalendar />
+
+            {/* Recent Activity Feed */}
+            <ActivityTracker />
+
+            {/* Talent Pool Match Upload */}
+            <TalentMatchUpload />
+          </div>
         </div>
       </div>
     </div>

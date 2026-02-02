@@ -8,6 +8,7 @@ import { authenticateToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { parseResume } from '../utils/parseResume';
 import { calculateMatchScore } from '../utils/matching';
+import { matchResumeToJobs } from '../utils/geminiAI';
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -59,34 +60,51 @@ router.post(
       }
 
       const { jobId } = req.body;
-      if (!jobId) {
-        return next(new AppError(400, 'Job ID is required'));
+
+      let jobVal = null;
+      let matchScore = 0;
+
+      // If jobId is provided, validate it and calculate score
+      if (jobId) {
+        const job = await Job.findById(jobId);
+        if (!job) {
+          return next(new AppError(404, 'Job not found'));
+        }
+        jobVal = jobId;
+        // Parse resume first to get skills
+        const parsedData = await parseResume(req.file.path);
+        matchScore = calculateMatchScore(parsedData.skills, job.requiredSkills);
+
+        // Create candidate with job linkage
+        const candidate = new Candidate({
+          ...parsedData,
+          resumeFile: req.file.path,
+          job: jobVal,
+          matchScore,
+        });
+        await candidate.save();
+
+        return res.status(201).json({
+          success: true,
+          message: 'Resume uploaded and application submitted',
+          candidate,
+        });
       }
 
-      const job = await Job.findById(jobId);
-      if (!job) {
-        return next(new AppError(404, 'Job not found'));
-      }
-
-      // Parse resume
+      // If no jobId (Talent Pool / General Upload), just parse and save
       const parsedData = await parseResume(req.file.path);
 
-      // Calculate match score
-      const matchScore = calculateMatchScore(parsedData.skills, job.requiredSkills);
-
-      // Create candidate
       const candidate = new Candidate({
         ...parsedData,
         resumeFile: req.file.path,
-        job: jobId,
-        matchScore,
+        matchScore: 0, // No specific job to match against yet
+        // job field is undefined/null
       });
-
       await candidate.save();
 
       res.status(201).json({
         success: true,
-        message: 'Resume uploaded and parsed successfully',
+        message: 'Resume uploaded to Talent Pool',
         candidate,
       });
     } catch (error) {
@@ -96,6 +114,67 @@ router.post(
           if (err) console.error('Error deleting file:', err);
         });
       }
+      next(error);
+    }
+  }
+);
+
+// Match resume to jobs
+router.post(
+  '/match-jobs',
+  authenticateToken,
+  upload.single('resume'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        return next(new AppError(400, 'Please upload a resume file'));
+      }
+
+      // 1. Parse Resume
+      const parsedData = await parseResume(req.file.path);
+
+      // 2. Fetch all active jobs (or top 20 latest)
+      const jobs = await Job.find().sort({ createdAt: -1 }).limit(20);
+
+      // 3. AI Matching
+      const matches = await matchResumeToJobs(
+        JSON.stringify({
+          skills: parsedData.skills,
+          experience: parsedData.experience,
+          education: parsedData.education
+        }),
+        jobs.map(j => ({
+          _id: j._id.toString(),
+          title: j.title,
+          description: j.description,
+          requiredSkills: j.requiredSkills
+        }))
+      );
+
+      // 4. Enrich response with Job details using the matches
+      const enrichedMatches = matches.map(match => {
+        const job = jobs.find(j => j._id.toString() === match.jobId);
+        return {
+          ...match,
+          jobTitle: job?.title || 'Unknown Job',
+          company: 'Acme Corp', // Placeholder if not in Job model
+        };
+      });
+
+      // Cleanup file after processing? 
+      // User might want to save it to talent pool too, but for this specific endpoint we just return matches.
+      // We'll delete it to keep storage clean unless we want to autosave.
+      // For now, let's keep it simple and just return matches.
+      fs.unlink(req.file.path, (err) => { if (err) console.error(err); });
+
+      res.status(200).json({
+        success: true,
+        candidateName: parsedData.name,
+        matches: enrichedMatches
+      });
+
+    } catch (error) {
+      if (req.file) fs.unlink(req.file.path, () => { });
       next(error);
     }
   }
@@ -117,8 +196,8 @@ router.get('/:jobId', authenticateToken, async (req: AuthRequest, res: Response,
     const avgScore =
       candidates.length > 0
         ? Math.round(
-            candidates.reduce((sum, c) => sum + (c.matchScore || 0), 0) / candidates.length
-          )
+          candidates.reduce((sum, c) => sum + (c.matchScore || 0), 0) / candidates.length
+        )
         : 0;
     const topCandidates = candidates.slice(0, 3);
 

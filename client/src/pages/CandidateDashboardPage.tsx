@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, CheckCircle, Clock, AlertCircle, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ApplicationTimeline } from '../components/candidate/ApplicationTimeline';
+import { NotificationPanel } from '../components/candidate/NotificationPanel';
+import { InterviewCountdown } from '../components/candidate/InterviewCountdown';
+import { PerformanceReviewCard } from '../components/candidate/PerformanceReviewCard';
 
 interface Application {
   _id: string;
@@ -16,6 +20,7 @@ interface Application {
   interviewDate?: string;
   sessionLink?: string;
   interviewSessionId?: string;
+  interviewResults?: any; // Mock logic for now
   createdAt: string;
 }
 
@@ -47,106 +52,106 @@ export const CandidateDashboardPage: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'accepted':
-        return <CheckCircle size={20} className="text-green-600" />;
-      case 'interview_scheduled':
-        return <Clock size={20} className="text-blue-600" />;
-      case 'rejected':
-        return <AlertCircle size={20} className="text-red-600" />;
-      default:
-        return <FileText size={20} className="text-gray-600" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'accepted':
-        return 'bg-green-100 text-green-800';
-      case 'interview_scheduled':
-        return 'bg-blue-100 text-blue-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      case 'reviewing':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Find next upcoming interview
+  const upcomingInterview = applications.find(app =>
+    app.status === 'interview_scheduled' &&
+    app.interviewDate &&
+    new Date(app.interviewDate) > new Date()
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow">
+      <NotificationPanel />
+
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 bg-opacity-90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
-          <p className="text-gray-600 mt-1">Track your job applications and interview status</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">My Overview</h1>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
+        {upcomingInterview && upcomingInterview.interviewDate && (
+          <InterviewCountdown
+            interviewDate={upcomingInterview.interviewDate}
+            onJoin={() => navigate(`/interview/${upcomingInterview.sessionLink?.split('/').pop()}`)}
+          />
+        )}
+
         {loading ? (
-          <p className="text-gray-600">Loading applications...</p>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
         ) : error ? (
-          <p className="text-red-600">{error}</p>
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2">
+            <AlertCircle size={20} />
+            {error}
+          </div>
         ) : applications.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-4">No applications yet</p>
-            <a
-              href="/candidate-jobs"
-              className="text-blue-600 hover:text-blue-700 font-semibold"
-            >
-              Browse Jobs
-            </a>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <FileText size={40} className="text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-gray-900 mb-2">No applications yet</h3>
+            <a href="/candidate-jobs" className="text-blue-600 font-bold hover:underline">Browse Open Jobs</a>
           </div>
         ) : (
-          <div className="space-y-4">
-            {applications.map((app) => (
-              <div key={app._id} className="bg-white rounded-lg shadow hover:shadow-lg transition p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900">{app.job.title}</h3>
-                    <p className="text-sm text-gray-600">{app.job.recruiter.name}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-2 mb-2">
-                      {getStatusIcon(app.status)}
-                      <span
-                        className={`text-sm font-semibold px-3 py-1 rounded-full ${getStatusColor(
-                          app.status
-                        )}`}
-                      >
-                        {app.status.replace('_', ' ').toUpperCase()}
-                      </span>
+          <div className="space-y-8">
+            <h2 className="text-xl font-bold text-gray-800">My Applications</h2>
+
+            <div className="grid gap-6">
+              {applications.map((app) => (
+                <div key={app._id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{app.job.title}</h3>
+                      <p className="text-sm text-gray-500">{app.job.recruiter.name} • Applied {new Date(app.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <div className="text-2xl font-bold text-blue-600">{app.matchScore}%</div>
-                    <p className="text-xs text-gray-500">Match Score</p>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${app.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                        app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700'
+                      }`}>
+                      {app.status.replace('_', ' ')}
+                    </span>
                   </div>
+
+                  {/* Timeline Visual */}
+                  <div className="mb-8">
+                    <ApplicationTimeline status={app.status} />
+                  </div>
+
+                  {/* Interview Action */}
+                  {app.status === 'interview_scheduled' && app.interviewDate && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Clock className="text-blue-600" />
+                        <div>
+                          <p className="font-bold text-blue-900 text-sm">Action Required</p>
+                          <p className="text-xs text-blue-700">Interview scheduled for {new Date(app.interviewDate).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      {app.sessionLink && (
+                        <button onClick={() => navigate(`/interview/${app.sessionLink?.split('/').pop()}`)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition">
+                          Join Room
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Results / Feedback */}
+                  {app.status === 'accepted' || app.status === 'rejected' ? (
+                    <div className="mt-6">
+                      {/* Mocking results if not present for demo */}
+                      <PerformanceReviewCard results={app.interviewResults || {
+                        technicalScore: app.matchScore,
+                        communicationScore: 85,
+                        cultureFitScore: 90,
+                        problemSolvingScore: 78,
+                        feedback: "Strong technical skills demonstrated. Good culture fit."
+                      }} />
+                    </div>
+                  ) : null}
                 </div>
-
-                {app.status === 'interview_scheduled' && app.interviewDate && (
-                  <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
-                    <p className="text-sm font-semibold text-blue-900">Interview Scheduled</p>
-                    <p className="text-sm text-blue-800 mb-3">
-                      {new Date(app.interviewDate).toLocaleString()}
-                    </p>
-                    {app.sessionLink && (
-                      <button
-                        onClick={() => navigate(`/interview/${app.sessionLink.split('/').pop()}`)}
-                        className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
-                      >
-                        <Play size={16} /> Start Interview
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                <p className="text-xs text-gray-500">
-                  Applied {new Date(app.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

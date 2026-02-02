@@ -8,6 +8,7 @@ export interface IInterviewSession extends Document {
   scheduledTime: Date;
   sessionLink: string;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  notes?: string;
   interviewResults?: {
     score: number;
     summary: string;
@@ -65,6 +66,7 @@ const interviewSessionSchema = new Schema(
       enum: ['scheduled', 'in_progress', 'completed', 'cancelled'],
       default: 'scheduled',
     },
+    notes: String,
     interviewResults: {
       score: Number,
       summary: String,

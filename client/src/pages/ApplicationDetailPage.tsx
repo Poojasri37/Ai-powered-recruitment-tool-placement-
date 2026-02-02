@@ -43,6 +43,7 @@ export const ApplicationDetailPage: React.FC = () => {
   const [error, setError] = useState('');
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [interviewDate, setInterviewDate] = useState('');
+  const [notes, setNotes] = useState('');
   const [scheduling, setScheduling] = useState(false);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -90,7 +91,7 @@ export const ApplicationDetailPage: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch(
         `http://localhost:5000/api/interviews/schedule`,
         {
@@ -102,6 +103,7 @@ export const ApplicationDetailPage: React.FC = () => {
           body: JSON.stringify({
             applicationId: appId,
             scheduledTime: new Date(interviewDate).toISOString(),
+            notes: notes,
           }),
         }
       );
@@ -112,10 +114,10 @@ export const ApplicationDetailPage: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       setSuccess(true);
       setSuccessMessage(`✓ Interview scheduled for ${new Date(interviewDate).toLocaleString()}`);
-      
+
       // Refresh application details
       setTimeout(() => {
         fetchApplication();
@@ -130,7 +132,7 @@ export const ApplicationDetailPage: React.FC = () => {
   };
 
   const getStatusBadgeColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'accepted':
         return 'bg-green-100 text-green-800';
       case 'interview_scheduled':
@@ -291,7 +293,7 @@ export const ApplicationDetailPage: React.FC = () => {
           {showScheduleForm && (
             <form onSubmit={handleScheduleInterview} className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-8">
               <h3 className="text-lg font-bold text-gray-900 mb-4">📅 Schedule Interview</h3>
-              
+
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 flex items-center gap-2">
                   <AlertCircle size={18} className="text-red-600 flex-shrink-0" />
@@ -315,13 +317,25 @@ export const ApplicationDetailPage: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">Select a future date and time</p>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Instructions / Notes for Candidate
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g., Please prepare a working environment and ensure good lighting..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none h-32 resize-none"
+                  />
+                </div>
+
                 <div className="bg-white rounded border border-gray-200 p-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">✓ Interview Details:</p>
                   <ul className="text-sm text-gray-600 space-y-1">
                     <li>• Candidate will receive email invitation</li>
                     <li>• Interview session link will be generated</li>
-                    <li>• 4 Gemini AI questions will be asked</li>
-                    <li>• Responses will be evaluated in real-time</li>
+                    <li>• Technical and behavioral questions will be asked</li>
+                    <li>• AI will analyze responses for relevance and clarity</li>
                   </ul>
                 </div>
 

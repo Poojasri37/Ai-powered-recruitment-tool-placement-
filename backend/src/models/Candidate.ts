@@ -63,7 +63,7 @@ const candidateSchema = new mongoose.Schema<ICandidate>(
     job: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Job',
-      required: true,
+      required: false,
     } as any,
     matchScore: {
       type: Number,

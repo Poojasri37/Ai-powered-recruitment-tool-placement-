@@ -70,70 +70,87 @@ const ApplicationsList: React.FC<ApplicationsListProps> = ({ jobId, onRefresh })
     return <p className="text-gray-600">No applications yet</p>;
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-gray-50 border-b">
-          <tr>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-              Candidate
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-              Email
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-              Match Score
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-              Action
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {applications.map((app) => (
-            <tr key={app._id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 text-gray-900 font-medium">
-                {app.candidate.name}
-              </td>
-              <td className="px-6 py-4 text-gray-600 flex items-center gap-2">
-                <Mail size={16} /> {app.candidate.email}
-              </td>
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: `${app.matchScore}%` }}
-                    ></div>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {app.matchScore}%
-                  </span>
-                </div>
-              </td>
-              <td className="px-6 py-4">
-                <span
-                  className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusColor(
-                    app.status
-                  )}`}
-                >
-                  {app.status.replace('_', ' ').toUpperCase()}
-                </span>
-              </td>
-              <td className="px-6 py-4">
-                <Link
-                  to={`/application/${app._id}`}
-                  className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2"
-                >
-                  <Edit2 size={16} /> Details
-                </Link>
-              </td>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-100">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Candidate
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Match Score
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Action
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {applications.map((app) => (
+              <tr key={app._id} className="hover:bg-blue-50/50 transition-colors duration-150 group">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                      {app.candidate.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-900">{app.candidate.name}</div>
+                      <div className="text-xs text-gray-500">Applied {new Date(app.createdAt).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg w-fit">
+                    <Mail size={14} className="text-gray-400" />
+                    {app.candidate.email}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${app.matchScore >= 80 ? 'bg-green-500' :
+                            app.matchScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                        style={{ width: `${app.matchScore}%` }}
+                      ></div>
+                    </div>
+                    <span className="font-bold text-gray-700 text-sm">
+                      {app.matchScore}%
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${app.status === 'accepted' ? 'bg-green-50 text-green-700 border-green-200' :
+                        app.status === 'interview_scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          app.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                            'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      }`}
+                  >
+                    {app.status.replace('_', ' ').toUpperCase()}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <Link
+                    to={`/application/${app._id}`}
+                    className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-semibold text-sm hover:underline"
+                  >
+                    <Edit2 size={16} /> Review
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

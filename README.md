@@ -1,270 +1,89 @@
 # AI-Powered Recruitment Tool
 
-A full-stack recruitment platform with AI-powered resume parsing and candidate matching. Built with React, Node.js, Express, MongoDB, and TanStack Query.
+A full-stack advanced recruitment platform leveraging AI for resume parsing, candidate matching, and automated interviewing. Built with React (Vite), Node.js, Express, MongoDB, and Groq AI.
 
-## 📋 Features
+## 🌟 Key Features
 
-### Phase 1 Implementation
-- **User Authentication**: JWT-based recruiter registration and login
-- **Job Management**: Create, update, delete, and list job postings
-- **Resume Parsing**: Upload and parse PDF/DOCX resumes with automatic skill extraction
-- **AI Matching**: Keyword-based matching to generate candidate match scores (0-100%)
-- **Dashboard**: 
-  - View total candidates per job
-  - See average match scores
-  - List top 3 matching candidates
-  - Manage job postings
+### For Recruiters
+*   **Smart Dashboard**: Analytics on applications, interview stats, and recent activity.
+*   **AI Job Matching**: Automatically matches candidates to jobs based on resume analysis with a % score.
+*   **Kanban Application Board**: Drag-and-drop workflow (Applied → Reviewing → Interview → Hired).
+*   **Resume Parsing**: Support for PDF/DOCX with automated skill extraction.
+*   **Comparison Tool**: Side-by-side comparison of shortlisted candidates.
+*   **Interview Scheduling**: Integrated calendar and email notifications for scheduled interviews.
+
+### For Candidate
+*   **Experience Dashboard**: Visual timeline of application status, upcoming interview countdowns, and notifications.
+*   **Resume Preview & Edit**: Upload resumes and manually refine detected skills for better matching.
+*   **AI Interviewer**:
+    *   **Live Webcam Interview**: Real-time video interview with an AI avatar.
+    *   **Voice & Code**: Supports speech-to-text answers and a live code editor for technical questions.
+    *   **Instant Feedback**: Post-interview performance review with scores and radar charts.
+    *   **Smart Matching**: "Match Breakdown" showing missing vs. matched skills for every job.
+
+---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18** - UI framework
-- **Vite** - Build tool
-- **Tailwind CSS** - Styling
-- **TypeScript** - Type safety
-- **React Router** - Navigation
-- **Lucide React** - Icons
+*   **Framework**: React 18 + Vite + TypeScript
+*   **Styling**: TailwindCSS (Modern, Responsive, Animated)
+*   **Charts**: Recharts
+*   **State/Drag**: `@dnd-kit/core` (Kanban), LocalStorage (Persistence)
+*   **Editor**: Monaco Editor (for coding interviews)
 
 ### Backend
-- **Node.js** - Runtime
-- **Express** - Web framework
-- **TypeScript** - Type safety
-- **MongoDB** - Database
-- **Mongoose** - ODM
-- **JWT** - Authentication
-- **Multer** - File uploads
-- **pdf-parse** - PDF parsing
-- **Mammoth** - DOCX parsing
+*   **Runtime**: Node.js + Express
+*   **Database**: MongoDB + Mongoose
+*   **AI Models**: Groq (for parsing, matching, and interview logic)
+*   **Docs Processing**: `pdf-parse`, `mammoth` (DOCX)
+*   **Auth**: JWT-based authentication
 
-## 📁 Project Structure
-
-```
-AI-Powered Recruitment Tool/
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── database.ts
-│   │   ├── models/
-│   │   │   ├── User.ts
-│   │   │   ├── Job.ts
-│   │   │   └── Candidate.ts
-│   │   ├── routes/
-│   │   │   ├── auth.ts
-│   │   │   ├── jobs.ts
-│   │   │   └── candidates.ts
-│   │   ├── middleware/
-│   │   │   ├── auth.ts
-│   │   │   └── errorHandler.ts
-│   │   ├── utils/
-│   │   │   ├── parseResume.ts
-│   │   │   └── matching.ts
-│   │   └── server.ts
-│   ├── .env.example
-│   ├── package.json
-│   └── tsconfig.json
-├── client/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── DashboardPage.tsx
-│   │   │   ├── JobFormPage.tsx
-│   │   │   ├── CandidateListPage.tsx
-│   │   │   └── CandidateDetailPage.tsx
-│   │   ├── components/
-│   │   │   ├── Header.tsx
-│   │   │   ├── DashboardStats.tsx
-│   │   │   ├── JobCard.tsx
-│   │   │   ├── CandidateList.tsx
-│   │   │   └── ResumeUpload.tsx
-│   │   ├── styles/
-│   │   │   └── globals.css
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── package.json
-│   └── tsconfig.json
-└── README.md
-```
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v16+)
-- npm or yarn
-- MongoDB Atlas account or local MongoDB instance
+*   Node.js (v18+)
+*   MongoDB Instance (Local or Atlas)
+*   Groq 
 
-### Backend Setup
+### Installation
 
-1. **Install dependencies**
-   ```bash
-   cd backend
-   npm install
-   ```
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd recruitment-tool
+    ```
 
-2. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Update `.env` with:
-   ```
-   PORT=5000
-   NODE_ENV=development
-   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/recruitment-tool
-   JWT_SECRET=your_super_secret_jwt_key_change_in_production
-   JWT_EXPIRE=7d
-   MAX_FILE_SIZE=5242880
-   UPLOAD_DIR=./uploads
-   ```
+2.  **Backend Setup**
+    ```bash
+    cd backend
+    npm install
+    # Create .env file
+    cp .env.example .env 
+    # Update .env with your MONGO_URI and GROQ_API_KEY
+    npm run dev
+    ```
 
-3. **Start the backend server**
-   ```bash
-   npm run dev
-   ```
-   
-   Server runs on `http://localhost:5000`
+3.  **Frontend Setup**
+    ```bash
+    cd client
+    npm install
+    npm run dev
+    ```
 
-### Frontend Setup
-
-1. **Install dependencies**
-   ```bash
-   cd client
-   npm install
-   ```
-
-2. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-   
-   App opens at `http://localhost:3000`
-
-## 📡 API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register a new recruiter
-- `POST /api/auth/login` - Login recruiter
-- `GET /api/auth/me` - Get current user (protected)
-
-### Jobs
-- `POST /api/jobs` - Create a job (protected)
-- `GET /api/jobs` - List all jobs
-- `GET /api/jobs/:id` - Get job details
-- `PUT /api/jobs/:id` - Update job (protected)
-- `DELETE /api/jobs/:id` - Delete job (protected)
-
-### Candidates
-- `POST /api/candidates/upload` - Upload and parse resume (protected)
-- `GET /api/candidates/:jobId` - List candidates for a job (protected)
-- `GET /api/candidates/detail/:id` - Get candidate details (protected)
-
-## 🔐 Authentication
-
-The app uses JWT tokens stored in localStorage. All protected routes require a valid token in the Authorization header:
-```
-Authorization: Bearer <token>
-```
-
-## 📝 Resume Parsing
-
-Supported formats:
-- **PDF** - Extracted using pdf-parse
-- **DOCX** - Extracted using mammoth
-
-Extraction includes:
-- Candidate name and contact info
-- Skills (matched against common tech keywords)
-- Education details
-- Work experience
-- Match score based on job requirements
-
-## 🤖 Matching Algorithm
-
-The matching algorithm uses keyword overlap:
-1. Extracts skills from uploaded resume
-2. Compares with required skills for the job
-3. Calculates score: `(matched_skills / required_skills) × 100%`
-4. Scores range from 0-100%
-
-## 🔄 Workflow
-
-1. **Register/Login** → Get JWT token
-2. **Create Job** → Define title, description, and required skills
-3. **Upload Resume** → Recruiter or candidate uploads PDF/DOCX
-4. **View Candidates** → See parsed resume data and match scores
-5. **Review Details** → Check candidate's full profile
-6. **Download Resume** → Access original resume file
-
-## 🚧 Next Steps (Future Phases)
-
-- Advanced AI matching using embeddings
-- Candidate scoring with ML models
-- Email notifications
-- Candidate portal for self-submission
-- Interview scheduling
-- Bulk operations
-- Analytics and reporting
-- Multiple file format support
-
-## 🛠️ Development Commands
-
-### Backend
-```bash
-npm run dev      # Start dev server with ts-node
-npm run build    # Compile TypeScript to JavaScript
-npm start        # Start production server
-npm run watch    # Watch for changes
-```
-
-### Frontend
-```bash
-npm run dev      # Start Vite dev server
-npm run build    # Build for production
-npm run preview  # Preview production build
-```
-
-## 📦 Build for Production
-
-### Backend
-```bash
-cd backend
-npm run build
-npm start
-```
-
-### Frontend
-```bash
-cd client
-npm run build
-```
-
-## 🐛 Troubleshooting
-
-**MongoDB Connection Error**
-- Verify MONGO_URI in `.env`
-- Check MongoDB Atlas IP whitelist
-- Ensure username/password are correct
-
-**Port Already in Use**
-- Backend: Change PORT in `.env`
-- Frontend: Use `npm run dev -- --port 3001`
-
-**CORS Errors**
-- Ensure backend is running on port 5000
-- Check frontend is on port 3000
-- CORS is enabled in Express middleware
-
-## 📄 License
-
-ISC
-
-## 👨‍💻 Author
-
-Your Name
+4.  **Access the App**
+    *   Frontend: `http://localhost:3000`
+    *   Backend: `http://localhost:5000`
 
 ---
 
-**Built with ❤️ for the recruitment industry**
+## 📸 Screen Previews
+
+*   **Recruiter Dashboard**: Analytics charts, Activity Feed, and Talent Matcher sidebar.
+*   **Candidate Board**: Kanban style drag-and-drop for managing applicants.
+*   **Interview Room**: Split screen with AI Avatar, Code Editor, and Live Video Feed.
+
+## 📄 License
+ISC

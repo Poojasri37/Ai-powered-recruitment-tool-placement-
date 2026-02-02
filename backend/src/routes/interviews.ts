@@ -92,6 +92,7 @@ router.post('/schedule', authenticateToken, async (req: Request, res: Response, 
       scheduledTime: new Date(scheduledTime),
       sessionLink,
       status: 'scheduled',
+      notes: req.body.notes || '',
     });
 
     await interviewSession.save();
@@ -308,7 +309,7 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
         summary: aiSummary,
         timestamp: new Date(),
       };
-      application.status = 'accepted'; // Can be updated by recruiter later
+      // application.status = 'accepted'; // Removed auto-hire, let HR decide
       await application.save();
     }
 
