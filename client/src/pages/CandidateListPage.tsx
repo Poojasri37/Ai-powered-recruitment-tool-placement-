@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CandidateList from '../components/CandidateList';
 import ResumeUpload from '../components/ResumeUpload';
@@ -44,40 +44,57 @@ export const CandidateListPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[500px]">
+      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <Link to="/dashboard" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
-          <ArrowLeft size={20} /> Back to Dashboard
+    <div className="max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="mb-8">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary mb-4 transition-colors font-medium text-sm">
+          <ArrowLeft size={16} /> Back to Dashboard
         </Link>
 
-        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">{error}</div>}
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{job?.title}</h1>
-          <p className="text-gray-600 mb-4">{job?.description}</p>
-          <div className="flex flex-wrap gap-2">
-            {job?.requiredSkills.map((skill: string) => (
-              <span key={skill} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                {skill}
-              </span>
-            ))}
+        <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm p-8 animate-slide-up">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">{job?.title}</h1>
+              <p className="text-gray-600 mb-6 max-w-2xl leading-relaxed">{job?.description}</p>
+              <div className="flex flex-wrap gap-2">
+                {job?.requiredSkills.map((skill: string) => (
+                  <span key={skill} className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="text-right hidden sm:block">
+              <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wide border border-green-200">Active Job</span>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Candidates ({candidates.length})</h2>
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-          >
-            <Upload size={20} /> Upload Resume
-          </button>
-        </div>
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <Users className="text-primary" /> Candidates
+          <span className="text-sm font-medium bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">{candidates.length}</span>
+        </h2>
+        <button
+          onClick={() => setShowUpload(!showUpload)}
+          className="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-primary/20 font-medium"
+        >
+          <Upload size={18} /> {showUpload ? 'Cancel Upload' : 'Upload Resume'}
+        </button>
+      </div>
 
-        {showUpload && (
+      {showUpload && (
+        <div className="mb-8 animate-fade-in">
           <ResumeUpload
             jobId={jobId!}
             onSuccess={() => {
@@ -85,8 +102,10 @@ export const CandidateListPage: React.FC = () => {
               fetchJobAndCandidates();
             }}
           />
-        )}
+        </div>
+      )}
 
+      <div className="animate-slide-up animation-delay-200">
         <CandidateList candidates={candidates} />
       </div>
     </div>

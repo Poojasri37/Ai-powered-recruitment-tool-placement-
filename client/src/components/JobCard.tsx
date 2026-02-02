@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, MapPin, Briefcase, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config';
 
@@ -28,49 +28,69 @@ const JobCard: React.FC<JobCardProps> = ({ job, onUpdate }) => {
   };
 
   return (
-    <div className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col justify-between h-full">
+    <div className="group bg-white/60 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col justify-between h-full relative overflow-hidden">
+      {/* Top Gradient Line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
       <div>
-        <div className="flex justify-between items-start mb-3">
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
+        <div className="flex justify-between items-start mb-4">
+          <div className="p-3 bg-blue-50/80 rounded-xl group-hover:bg-blue-100/80 transition-colors backdrop-blur-sm">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/30">
               {job.title.charAt(0)}
             </div>
           </div>
-          <span className="text-xs font-semibold px-2 py-1 bg-green-100 text-green-700 rounded-full">Active</span>
+          <span className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 bg-green-100/80 text-green-700 rounded-full border border-green-200 uppercase tracking-wide">
+            Active
+          </span>
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug group-hover:text-blue-600 transition-colors">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 leading-snug group-hover:text-primary transition-colors">
           {job.title}
         </h3>
-        <p className="text-gray-500 text-sm mb-5 line-clamp-2 leading-relaxed">
+
+        <div className="flex flex-wrap gap-y-2 gap-x-4 mb-4 text-xs text-gray-600 font-medium">
+          <div className="flex items-center gap-1">
+            <Briefcase size={12} className="text-gray-400" />
+            {job.department}
+          </div>
+          <div className="flex items-center gap-1">
+            <MapPin size={12} className="text-gray-400" />
+            {job.location}
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock size={12} className="text-gray-400" />
+            {job.type}
+          </div>
+        </div>
+
+        <p className="text-gray-500 text-sm mb-6 line-clamp-2 leading-relaxed h-10">
           {job.description}
         </p>
 
         <div className="mb-6">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Required Skills</p>
           <div className="flex flex-wrap gap-2">
             {job.requiredSkills.slice(0, 3).map((skill: string) => (
-              <span key={skill} className="bg-gray-50 text-gray-600 border border-gray-200 text-xs px-2.5 py-1 rounded-md font-medium">
+              <span key={skill} className="bg-white/50 text-gray-600 border border-gray-200 text-xs px-2.5 py-1 rounded-lg font-medium">
                 {skill}
               </span>
             ))}
             {job.requiredSkills.length > 3 && (
-              <span className="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-md font-medium">+{job.requiredSkills.length - 3}</span>
+              <span className="bg-white/50 text-gray-500 border border-gray-200 text-xs px-2 py-1 rounded-lg font-medium">+{job.requiredSkills.length - 3}</span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
+      <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
         <Link
           to={`/job-applications/${job._id}`}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition font-medium shadow-md shadow-blue-100"
+          className="flex-1 bg-gray-900 hover:bg-primary text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 font-medium shadow-lg shadow-gray-200 hover:shadow-primary/30 group/btn"
         >
-          <Eye size={18} /> View Applicants
+          View Applicants <ArrowRight size={16} className="group-hover/btn:translate-x-0.5 transition-transform" />
         </Link>
         <button
           onClick={handleDelete}
-          className="p-2.5 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors border border-transparent hover:border-red-100"
+          className="p-2.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-500 rounded-xl transition-colors border border-transparent"
           title="Delete Job"
         >
           <Trash2 size={18} />

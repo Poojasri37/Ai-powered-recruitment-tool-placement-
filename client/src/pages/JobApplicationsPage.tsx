@@ -245,28 +245,33 @@ export const JobApplicationsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm p-8 mb-8 animate-slide-up">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{job?.title}</h1>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">{job?.title}</h1>
+                <span className="bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide">Active</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
                 {job?.requiredSkills.map((skill: string) => (
-                  <span key={skill} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                  <span key={skill} className="bg-gray-100/80 text-gray-700 border border-gray-200 px-3 py-1 rounded-lg text-xs font-semibold">
                     {skill}
                   </span>
                 ))}
               </div>
             </div>
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="flex bg-gray-100 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition ${viewMode === 'list' ? 'bg-white shadow' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                title="List View"
               >
                 <ListIcon size={20} />
               </button>
               <button
                 onClick={() => setViewMode('board')}
-                className={`p-2 rounded-md transition ${viewMode === 'board' ? 'bg-white shadow' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'board' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                title="Kanban Board View"
               >
                 <LayoutGrid size={20} />
               </button>
@@ -288,49 +293,58 @@ export const JobApplicationsPage: React.FC = () => {
           }}
         />
 
-        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-          Candidates <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-sm">{filteredApplications.length}</span>
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            Candidates <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-sm min-w-[24px] text-center">{filteredApplications.length}</span>
+          </h2>
+        </div>
 
         {filteredApplications.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600">No applications match your filters</p>
+          <div className="bg-white/40 backdrop-blur rounded-2xl border border-dashed border-gray-300 p-16 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+              <LayoutGrid size={32} />
+            </div>
+            <p className="text-gray-900 font-medium text-lg">No applications match your filters</p>
+            <p className="text-gray-500 text-sm mt-1">Try adjusting your search terms or filters</p>
+            <button onClick={() => { setSearchTerm(''); setStatusFilter([]); setMinScore(0); }} className="mt-4 text-primary hover:underline font-medium">Clear All Filters</button>
           </div>
         ) : viewMode === 'board' ? (
-          <KanbanBoard applications={filteredApplications} onStatusChange={handleStatusChange} />
+          <div className="overflow-x-auto pb-4 custom-scrollbar">
+            <KanbanBoard applications={filteredApplications} onStatusChange={handleStatusChange} />
+          </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-4 animate-fade-in">
             {filteredApplications.map((app) => (
-              <div key={app._id} className={`bg-white rounded-lg shadow hover:shadow-lg transition p-6 border-l-4 ${shortlisted.includes(app._id) ? 'border-l-yellow-400' : 'border-l-transparent'}`}>
-                <div className="flex justify-between items-start mb-4">
+              <div key={app._id} className={`bg-white/70 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all p-6 border border-gray-100 group ${shortlisted.includes(app._id) ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}`}>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                   <div className="flex gap-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl font-bold text-gray-600">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xl font-bold text-gray-500 shadow-inner">
                       {app.candidate.name.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         {app.candidate.name}
-                        <button onClick={() => toggleShortlist(app._id)} className="text-gray-300 hover:text-yellow-400 transition focus:outline-none">
-                          <Star size={20} fill={shortlisted.includes(app._id) ? "gold" : "none"} className={shortlisted.includes(app._id) ? "text-yellow-400" : ""} />
+                        <button onClick={() => toggleShortlist(app._id)} className="transition focus:outline-none transform hover:scale-110 active:scale-95">
+                          <Star size={18} fill={shortlisted.includes(app._id) ? "#fbbf24" : "none"} className={shortlisted.includes(app._id) ? "text-yellow-400" : "text-gray-300 hover:text-yellow-400"} />
                         </button>
                       </h3>
-                      <p className="text-sm text-gray-600">{app.candidate.email}</p>
+                      <p className="text-sm text-gray-500">{app.candidate.email}</p>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-600 mb-1">
+                  <div className="flex items-center gap-4 sm:flex-col sm:items-end sm:gap-1">
+                    <div className={`text-2xl font-bold ${app.matchScore >= 80 ? 'text-green-600' : app.matchScore >= 50 ? 'text-yellow-600' : 'text-gray-400'}`}>
                       {app.matchScore}%
                     </div>
-                    <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full ${getStatusColor(app.status)}`}>
-                      {app.status.replace('_', ' ').toUpperCase()}
+                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border ${getStatusColor(app.status)}`}>
+                      {app.status.replace('_', ' ')}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-6">
                   {(app.resume.skills || []).slice(0, 5).map(skill => (
-                    <span key={skill} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                    <span key={skill} className="text-xs bg-gray-50 border border-gray-100 text-gray-600 px-2 py-1 rounded-md">
                       {skill}
                     </span>
                   ))}
@@ -340,30 +354,33 @@ export const JobApplicationsPage: React.FC = () => {
                 </div>
 
                 {app.status === 'interview_scheduled' && app.interviewDate && (
-                  <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 flex items-center gap-2 max-w-fit">
-                    <Calendar size={16} className="text-blue-600" />
-                    <span className="text-sm text-blue-800">
-                      Interview: {new Date(app.interviewDate).toLocaleString()}
-                    </span>
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 mb-4 flex items-center gap-3 max-w-fit">
+                    <div className="bg-white p-1.5 rounded-md shadow-sm text-blue-500"><Calendar size={14} /></div>
+                    <div>
+                      <p className="text-xs font-bold text-blue-900 uppercase">Interview Scheduled</p>
+                      <p className="text-sm text-blue-700 font-medium">
+                        {new Date(app.interviewDate).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 )}
 
-                <div className="flex justify-between items-center border-t pt-4 mt-2">
+                <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       id={`compare-${app._id}`}
                       checked={selectedForComparison.includes(app._id)}
                       onChange={() => toggleComparison(app._id)}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer"
                     />
-                    <label htmlFor={`compare-${app._id}`} className="text-sm text-gray-600 cursor-pointer select-none">Select for comparison</label>
+                    <label htmlFor={`compare-${app._id}`} className="text-sm text-gray-500 cursor-pointer select-none hover:text-gray-800 transition-colors">Compare Candidate</label>
                   </div>
                   <Link
                     to={`/application/${app._id}`}
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
+                    className="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-lg shadow-gray-200 hover:shadow-xl active:scale-95"
                   >
-                    <Eye size={18} /> View Details
+                    View Details <Eye size={16} />
                   </Link>
                 </div>
               </div>

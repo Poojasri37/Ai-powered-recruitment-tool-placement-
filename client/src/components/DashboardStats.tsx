@@ -1,12 +1,11 @@
 import React from 'react';
-import { Users, TrendingUp, FileText } from 'lucide-react';
+import { Users, TrendingUp, FileText, ArrowUpRight } from 'lucide-react';
 
 interface DashboardStatsProps {
   stats: {
-    totalApplications?: number; // Optional fallback or unused if we rely on jobs
+    totalApplications?: number;
     interviewsScheduled?: number;
     hired?: number;
-    // We can also keep 'jobs' if needed, but the new design passes 'stats'
     [key: string]: any;
   };
 }
@@ -17,45 +16,56 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats: inputStats }) =>
       label: 'Total Applications',
       value: inputStats.totalApplications || 0,
       icon: FileText,
-      color: 'bg-blue-600',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600',
+      gradient: 'from-blue-500 to-blue-600',
+      iconColor: 'text-blue-500',
+      bgIcon: 'bg-blue-50',
     },
     {
       label: 'Interviews Scheduled',
       value: inputStats.interviewsScheduled || 0,
       icon: Users,
-      color: 'bg-emerald-600',
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-600',
+      gradient: 'from-emerald-500 to-emerald-600',
+      iconColor: 'text-emerald-500',
+      bgIcon: 'bg-emerald-50',
     },
     {
       label: 'Candidates Hired',
       value: inputStats.hired || 0,
       icon: TrendingUp,
-      color: 'bg-purple-600',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600',
+      gradient: 'from-violet-500 to-violet-600',
+      iconColor: 'text-violet-500',
+      bgIcon: 'bg-violet-50',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-slide-up">
       {stats.map((stat, idx) => {
         const Icon = stat.icon;
         return (
-          <div key={idx} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 p-6 flex flex-col justify-between group">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <p className="text-gray-500 text-sm font-medium tracking-wide uppercase">{stat.label}</p>
-                <h3 className="text-4xl font-extrabold text-gray-900 mt-2 tracking-tight group-hover:scale-105 transition-transform origin-left">{stat.value}</h3>
+          <div
+            key={idx}
+            className="group relative overflow-hidden bg-white/60 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm hover:shadow-xl transition-all duration-300 p-6"
+          >
+            {/* Background decoration */}
+            <div className={`absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+
+            <div className="flex justify-between items-start mb-4 relative z-10">
+              <div className={`p-3 rounded-xl ${stat.bgIcon} ${stat.iconColor} group-hover:scale-110 transition-transform duration-300`}>
+                <Icon size={24} />
               </div>
-              <div className={`${stat.bgColor} p-3 rounded-xl shadow-inner`}>
-                <Icon size={24} className={stat.textColor} />
+              <div className="flex items-center text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                +12% <ArrowUpRight size={12} className="ml-1" />
               </div>
             </div>
-            <div className={`h-1 w-full rounded-full bg-gray-100 overflow-hidden`}>
-              <div className={`h-full ${stat.color} w-3/4 rounded-full opacity-80`} />
+
+            <div className="relative z-10">
+              <h3 className="text-4xl font-bold text-gray-900 group-hover:translate-x-1 transition-transform">
+                {stat.value}
+              </h3>
+              <p className="text-gray-500 font-medium text-sm mt-1">
+                {stat.label}
+              </p>
             </div>
           </div>
         );

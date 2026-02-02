@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, AlertCircle, CheckCircle, Briefcase } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle, Briefcase, Sparkles, FileText, X } from 'lucide-react';
 import { API_URL } from '../config';
 
 interface MatchResult {
@@ -66,19 +66,22 @@ const TalentMatchUpload: React.FC = () => {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 overflow-hidden relative">
-            <div className="flex items-center gap-3 mb-4">
-                <div className="bg-purple-100 p-2 rounded-lg text-purple-600 border border-purple-200">
-                    <Briefcase size={20} />
+        <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm p-6 overflow-hidden relative">
+            {/* Decoration */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl" />
+
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="bg-purple-100 p-2.5 rounded-xl text-purple-600 border border-purple-200 shadow-sm">
+                    <Sparkles size={20} />
                 </div>
                 <div>
-                    <h3 className="font-bold text-gray-900 text-sm">AI Talent Matcher</h3>
-                    <p className="text-gray-500 text-xs">Instantly match resumes to jobs</p>
+                    <h3 className="font-bold text-gray-900 text-base">AI Talent Matcher</h3>
+                    <p className="text-gray-500 text-xs">Instantly match resumes to open jobs</p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="mb-4">
-                <label className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${file ? 'border-purple-300 bg-purple-50' : 'border-gray-200 hover:border-purple-400 hover:bg-gray-50'
+            <form onSubmit={handleSubmit} className="mb-6 relative z-10">
+                <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 ${file ? 'border-purple-300 bg-purple-50/50' : 'border-gray-200 hover:border-purple-400 hover:bg-gray-50/80'
                     }`}>
                     <input
                         type="file"
@@ -86,37 +89,54 @@ const TalentMatchUpload: React.FC = () => {
                         accept=".pdf,.docx"
                         className="hidden"
                     />
-                    <div className="flex flex-col items-center gap-1">
-                        <Upload size={20} className={file ? 'text-purple-600' : 'text-gray-400'} />
-                        <span className={`text-xs font-semibold ${file ? 'text-purple-700' : 'text-gray-600'}`}>
-                            {file ? file.name : 'Drop resume here'}
+                    <div className="flex flex-col items-center gap-2">
+                        {file ? (
+                            <div className="bg-white p-3 rounded-full shadow-sm text-purple-600 mb-1">
+                                <FileText size={24} />
+                            </div>
+                        ) : (
+                            <div className="bg-gray-100 p-3 rounded-full text-gray-400 mb-1 group-hover:bg-white group-hover:text-purple-500 transition-colors">
+                                <Upload size={24} />
+                            </div>
+                        )}
+                        <span className={`text-sm font-semibold ${file ? 'text-purple-700' : 'text-gray-600'}`}>
+                            {file ? file.name : 'Drop resume here or click to browse'}
                         </span>
+                        {!file && <span className="text-xs text-gray-400">Supports PDF, DOCX</span>}
                     </div>
                 </label>
 
-                {error && <p className="text-xs text-red-500 mt-2 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
+                {error && <div className="mt-3 p-2 bg-red-50 text-red-600 text-xs rounded-lg flex items-center gap-2 border border-red-100"><AlertCircle size={14} />{error}</div>}
 
                 <button
                     type="submit"
                     disabled={!file || loading}
-                    className="w-full mt-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold py-2 rounded-lg text-sm shadow-md transition-all"
+                    className="w-full mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl text-sm shadow-lg shadow-purple-500/20 active:scale-95 transition-all"
                 >
-                    {loading ? 'Analyzing...' : 'Find Matches'}
+                    {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing...
+                        </span>
+                    ) : 'Find Automatic Matches'}
                 </button>
             </form>
 
             {matches.length > 0 && (
-                <div className="space-y-3 animate-fade-in relative z-10">
-                    <p className="text-xs font-bold text-gray-500 uppercase">Top Matches</p>
-                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                <div className="space-y-4 animate-slide-up relative z-10">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Top Job Matches</p>
+                        <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{matches.length} found</span>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
                         {matches.map((match) => (
-                            <div key={match.jobId} className="bg-gray-50 border border-gray-100 rounded-lg p-3 hover:shadow-sm">
-                                <div className="flex justify-between items-start mb-1">
-                                    <h5 className="font-bold text-gray-800 text-xs line-clamp-1" title={match.jobTitle}>{match.jobTitle}</h5>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${match.score >= 80 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                                        }`}>{match.score}%</span>
+                            <div key={match.jobId} className="bg-white/80 border border-gray-100 rounded-xl p-3 hover:shadow-md hover:border-purple-100 transition-all duration-200">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h5 className="font-bold text-gray-800 text-sm line-clamp-1" title={match.jobTitle}>{match.jobTitle}</h5>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${match.score >= 80 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                        }`}>{match.score}% Match</span>
                                 </div>
-                                <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">{match.reasoning}</p>
+                                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{match.reasoning}</p>
                             </div>
                         ))}
                     </div>

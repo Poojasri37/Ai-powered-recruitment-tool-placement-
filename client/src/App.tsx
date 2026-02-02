@@ -10,10 +10,11 @@ import { ApplyJobPage } from './pages/ApplyJobPage';
 import { CandidateDashboardPage } from './pages/CandidateDashboardPage';
 import { ApplicationDetailPage } from './pages/ApplicationDetailPage';
 import { JobApplicationsPage } from './pages/JobApplicationsPage';
+import { TalentMatchPage } from './pages/TalentMatchPage';
 import InterviewPage from './pages/InterviewPage';
 import InterviewCompletePage from './pages/InterviewCompletePage';
 import InterviewResultsPage from './pages/InterviewResultsPage';
-import Header from './components/Header';
+import Layout from './components/layout/Layout';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
@@ -43,13 +44,9 @@ function App() {
     localStorage.removeItem('user');
   };
 
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    return isAuthenticated ? <>{children}</> : <Navigate to="/" />;
-  };
-
   const RecruiterRoute = ({ children }: { children: React.ReactNode }) => {
     return isAuthenticated && userRole === 'recruiter' ? (
-      <>{children}</>
+      <Layout onLogout={handleLogout}>{children}</Layout>
     ) : (
       <Navigate to="/" />
     );
@@ -57,7 +54,7 @@ function App() {
 
   const CandidateRoute = ({ children }: { children: React.ReactNode }) => {
     return isAuthenticated && userRole === 'candidate' ? (
-      <>{children}</>
+      <Layout onLogout={handleLogout}>{children}</Layout>
     ) : (
       <Navigate to="/" />
     );
@@ -65,7 +62,6 @@ function App() {
 
   return (
     <Router>
-      {isAuthenticated && <Header onLogout={handleLogout} />}
       <Routes>
         <Route
           path="/"
@@ -127,6 +123,14 @@ function App() {
           element={
             <RecruiterRoute>
               <ApplicationDetailPage />
+            </RecruiterRoute>
+          }
+        />
+        <Route
+          path="/talent-match"
+          element={
+            <RecruiterRoute>
+              <TalentMatchPage />
             </RecruiterRoute>
           }
         />

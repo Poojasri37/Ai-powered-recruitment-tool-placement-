@@ -1,7 +1,6 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, Building2, UserCircle } from 'lucide-react';
 import { API_URL } from '../config';
 
 interface LoginPageProps {
@@ -57,119 +56,189 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">
-          Recruit AI
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          AI-Powered Recruitment Tool
-        </p>
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-background">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 -z-20" />
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -z-10 animate-pulse-slow" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] -z-10 animate-pulse-slow" />
 
-        {!isLogin && (
-          <div className="mb-6 flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                checked={userType === 'recruiter'}
-                onChange={() => setUserType('recruiter')}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Recruiter</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                checked={userType === 'candidate'}
-                onChange={() => setUserType('candidate')}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Candidate</span>
-            </label>
-          </div>
-        )}
+      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8 items-center">
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
-                <User size={18} className="text-gray-400 mr-2" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="flex-1 outline-none"
-                  placeholder="Your name"
-                  required={!isLogin}
-                />
-              </div>
+        {/* Left Side - Hero Content (Hidden on mobile) */}
+        <div className="hidden md:block p-8 animate-slide-up">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-primary/10 rounded-2xl">
+              <Sparkles className="w-8 h-8 text-primary" />
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
-              <Mail size={18} className="text-gray-400 mr-2" />
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="flex-1 outline-none"
-                placeholder="your@email.com"
-                required
-              />
-            </div>
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+              Recruit AI
+            </h1>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
-              <Lock size={18} className="text-gray-400 mr-2" />
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="flex-1 outline-none"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-          </div>
-
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-          >
-            {loading ? 'Loading...' : isLogin ? 'Login' : `Register as ${userType}`}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            {isLogin ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-              }}
-              className="text-blue-600 hover:text-blue-700 font-semibold"
-            >
-              {isLogin ? 'Register' : 'Login'}
-            </button>
+          <h2 className="text-4xl font-bold text-gray-900 mb-6 leading-tight">
+            The Future of <br />
+            <span className="text-primary">Smart Recruitment</span>
+          </h2>
+          <p className="text-lg text-gray-600 mb-8 max-w-md">
+            Streamline your hiring process with AI-driven insights, automated scheduling, and intelligent candidate matching.
           </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-white/40 shadow-sm">
+              <Building2 className="w-6 h-6 text-blue-500 mb-2" />
+              <h3 className="font-semibold text-gray-900">For Recruiters</h3>
+              <p className="text-sm text-gray-500">Automate screening & interviews</p>
+            </div>
+            <div className="p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-white/40 shadow-sm">
+              <UserCircle className="w-6 h-6 text-purple-500 mb-2" />
+              <h3 className="font-semibold text-gray-900">For Candidates</h3>
+              <p className="text-sm text-gray-500">Fast-track your dream job</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Auth Card */}
+        <div className="w-full max-w-md mx-auto">
+          <div className="relative bg-white/70 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl p-8 overflow-hidden animate-fade-in">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-500" />
+
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {isLogin ? 'Welcome Back' : 'Create Account'}
+              </h3>
+              <p className="text-gray-500 text-sm">
+                {isLogin
+                  ? 'Enter your credentials to access your account'
+                  : 'Join thousands of professionals today'
+                }
+              </p>
+            </div>
+
+            {/* Role Selection (Only for Register) */}
+            {!isLogin && (
+              <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-gray-100/50 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setUserType('recruiter')}
+                  className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${userType === 'recruiter'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  <Building2 size={16} /> Recruiter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserType('candidate')}
+                  className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${userType === 'candidate'
+                      ? 'bg-white text-primary shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  <UserCircle size={16} /> Candidate
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                    Full Name
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
+                      <User size={18} />
+                    </div>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none"
+                      placeholder="John Doe"
+                      required={!isLogin}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                  Email Address
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
+                    <Mail size={18} />
+                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none"
+                    placeholder="name@company.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">
+                  Password
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
+                    <Lock size={18} />
+                  </div>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center justify-center">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-500/30 transform transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <span className="animate-pulse">Processing...</span>
+                ) : (
+                  <>
+                    <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+              <p className="text-gray-500 text-sm">
+                {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                <button
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setError('');
+                  }}
+                  className="text-primary font-semibold hover:text-blue-700 transition-colors ml-1"
+                >
+                  {isLogin ? 'Register Now' : 'Sign In'}
+                </button>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
