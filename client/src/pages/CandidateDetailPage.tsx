@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowLeft, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 export const CandidateDetailPage: React.FC = () => {
   const { candidateId } = useParams();
@@ -16,7 +17,7 @@ export const CandidateDetailPage: React.FC = () => {
   const fetchCandidate = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/candidates/detail/${candidateId}`, {
+      const response = await fetch(`${API_URL}/api/candidates/detail/${candidateId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -54,7 +55,7 @@ export const CandidateDetailPage: React.FC = () => {
               <div className="text-4xl font-bold text-blue-600">{candidate.matchScore}%</div>
               <p className="text-gray-600 text-sm">Match Score</p>
               <a
-                href={`http://localhost:5000/${candidate.resumeFile}`}
+                href={`${API_URL}/${candidate.resumeFile}`}
                 className="mt-2 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
               >
                 <Download size={18} /> Download Resume

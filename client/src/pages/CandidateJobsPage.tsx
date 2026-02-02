@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Briefcase, MapPin, DollarSign, Calendar, Bookmark, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { JobMatchBreakdown } from '../components/candidate/JobMatchBreakdown';
+import { API_URL } from '../config';
 
 interface Job {
   _id: string;
@@ -48,7 +49,7 @@ export const CandidateJobsPage: React.FC = () => {
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/candidate-jobs', {
+      const response = await fetch(`${API_URL}/api/candidate-jobs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

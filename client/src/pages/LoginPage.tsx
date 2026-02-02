@@ -2,6 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface LoginPageProps {
   onLogin?: (token: string) => void;
@@ -31,7 +32,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         ? { email: formData.email, password: formData.password }
         : { ...formData, role: userType };
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

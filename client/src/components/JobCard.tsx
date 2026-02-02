@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 interface JobCardProps {
   job: any;
@@ -13,7 +14,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/jobs/${job._id}`, {
+      const response = await fetch(`${API_URL}/api/jobs/${job._id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

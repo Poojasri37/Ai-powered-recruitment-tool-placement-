@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Share2, AlertCircle } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface InterviewResult {
   sessionId: string;
@@ -40,7 +41,7 @@ export default function InterviewResultsPage() {
   const fetchResults = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/interviews/results/${sessionId}`,
+        `${API_URL}/api/interviews/results/${sessionId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

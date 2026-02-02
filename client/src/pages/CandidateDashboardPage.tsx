@@ -5,6 +5,7 @@ import { ApplicationTimeline } from '../components/candidate/ApplicationTimeline
 import { NotificationPanel } from '../components/candidate/NotificationPanel';
 import { InterviewCountdown } from '../components/candidate/InterviewCountdown';
 import { PerformanceReviewCard } from '../components/candidate/PerformanceReviewCard';
+import { API_URL } from '../config';
 
 interface Application {
   _id: string;
@@ -37,7 +38,7 @@ export const CandidateDashboardPage: React.FC = () => {
   const fetchApplications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/candidate-jobs/candidate/applications/list', {
+      const response = await fetch(`${API_URL}/api/candidate-jobs/candidate/applications/list`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -106,8 +107,8 @@ export const CandidateDashboardPage: React.FC = () => {
                       <p className="text-sm text-gray-500">{app.job.recruiter.name} • Applied {new Date(app.createdAt).toLocaleDateString()}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${app.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                        app.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-blue-100 text-blue-700'
+                      app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-blue-100 text-blue-700'
                       }`}>
                       {app.status.replace('_', ' ')}
                     </span>

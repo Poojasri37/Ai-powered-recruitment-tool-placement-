@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, Mic, MicOff, Send, AlertCircle, CheckCircle } from 'lucide-react';
 import Editor from '@monaco-editor/react';
+import { API_URL } from '../config';
 
 interface SessionData {
   sessionId: string;
@@ -102,7 +103,7 @@ export default function InterviewPage() {
 
   const fetchSessionData = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/interviews/${sessionId}`, {
+      const response = await fetch(`${API_URL}/api/interviews/${sessionId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -121,7 +122,7 @@ export default function InterviewPage() {
   const generateQuestions = async (jobId: string, jobData: SessionData['job']) => {
     try {
       // Try to get AI-generated questions from backend
-      const response = await fetch(`http://localhost:5000/api/interviews/questions/${jobId}`, {
+      const response = await fetch(`${API_URL}/api/interviews/questions/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -309,7 +310,7 @@ export default function InterviewPage() {
       }
 
       // Mark interview as in progress
-      await fetch(`http://localhost:5000/api/interviews/${sessionId}/start`, {
+      await fetch(`${API_URL}/api/interviews/${sessionId}/start`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -474,7 +475,7 @@ export default function InterviewPage() {
         duration: interviewDuration,
       };
 
-      const response = await fetch(`http://localhost:5000/api/interviews/${sessionId}/submit`, {
+      const response = await fetch(`${API_URL}/api/interviews/${sessionId}/submit`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, AlertCircle, CheckCircle, Briefcase } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface MatchResult {
     jobId: string;
@@ -43,7 +44,7 @@ const TalentMatchUpload: React.FC = () => {
             formData.append('resume', file);
 
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/candidates/match-jobs', {
+            const response = await fetch(`${API_URL}/api/candidates/match-jobs`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,

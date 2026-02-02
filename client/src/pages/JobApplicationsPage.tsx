@@ -6,6 +6,7 @@ import { KanbanBoard } from '../components/applications/KanbanBoard';
 import { ApplicationFilters } from '../components/applications/ApplicationFilters';
 import { ComparisonModal } from '../components/applications/ComparisonModal';
 import { ScheduleInterviewModal } from '../components/applications/ScheduleInterviewModal';
+import { API_URL } from '../config';
 // import { jsPDF } from 'jspdf';
 // import autoTable from 'jspdf-autotable'; 
 
@@ -77,7 +78,7 @@ export const JobApplicationsPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
 
-      const jobRes = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+      const jobRes = await fetch(`${API_URL}/api/jobs/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!jobRes.ok) throw new Error('Failed to fetch job');
@@ -85,7 +86,7 @@ export const JobApplicationsPage: React.FC = () => {
       setJob(jobData.job);
 
       const appRes = await fetch(
-        `http://localhost:5000/api/applications/job/${jobId}`,
+        `${API_URL}/api/applications/job/${jobId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -143,7 +144,7 @@ export const JobApplicationsPage: React.FC = () => {
     if (!schedulingAppId) return;
 
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:5000/api/interviews/schedule', {
+    const response = await fetch(`${API_URL}/api/interviews/schedule`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

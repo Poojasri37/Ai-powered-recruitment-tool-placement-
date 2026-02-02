@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, Calendar, FileText, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 interface Application {
   _id: string;
@@ -32,7 +33,7 @@ const ApplicationsList: React.FC<ApplicationsListProps> = ({ jobId, onRefresh })
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/applications/job/${jobId}`,
+        `${API_URL}/api/applications/job/${jobId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -117,7 +118,7 @@ const ApplicationsList: React.FC<ApplicationsListProps> = ({ jobId, onRefresh })
                     <div className="w-24 bg-gray-100 rounded-full h-2.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full ${app.matchScore >= 80 ? 'bg-green-500' :
-                            app.matchScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                          app.matchScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                           }`}
                         style={{ width: `${app.matchScore}%` }}
                       ></div>
@@ -130,9 +131,9 @@ const ApplicationsList: React.FC<ApplicationsListProps> = ({ jobId, onRefresh })
                 <td className="px-6 py-4">
                   <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${app.status === 'accepted' ? 'bg-green-50 text-green-700 border-green-200' :
-                        app.status === 'interview_scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          app.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                            'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      app.status === 'interview_scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        app.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-yellow-50 text-yellow-700 border-yellow-200'
                       }`}
                   >
                     {app.status.replace('_', ' ').toUpperCase()}

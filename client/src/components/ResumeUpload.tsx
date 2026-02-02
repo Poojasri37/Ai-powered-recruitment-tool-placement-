@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, AlertCircle } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface ResumeUploadProps {
   jobId: string;
@@ -47,7 +48,7 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ jobId, onSuccess }) => {
       formData.append('jobId', jobId);
 
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/candidates/upload', {
+      const response = await fetch(`${API_URL}/api/candidates/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

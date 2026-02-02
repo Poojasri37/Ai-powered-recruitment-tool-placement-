@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { API_URL } from '../config';
 
 export const JobFormPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,6 @@ export const JobFormPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -31,7 +31,7 @@ export const JobFormPage: React.FC = () => {
         .map((s) => s.trim())
         .filter((s) => s);
 
-      const response = await fetch('http://localhost:5000/api/jobs', {
+      const response = await fetch(`${API_URL}/api/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

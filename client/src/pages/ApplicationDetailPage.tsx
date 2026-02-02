@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Mail, Phone, Download, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 interface ApplicationDetail {
   _id: string;
@@ -56,7 +57,7 @@ export const ApplicationDetailPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/applications/detail/${appId}`,
+        `${API_URL}/api/applications/detail/${appId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -93,7 +94,7 @@ export const ApplicationDetailPage: React.FC = () => {
       const token = localStorage.getItem('token');
 
       const response = await fetch(
-        `http://localhost:5000/api/interviews/schedule`,
+        `${API_URL}/api/interviews/schedule`,
         {
           method: 'POST',
           headers: {
@@ -247,7 +248,7 @@ export const ApplicationDetailPage: React.FC = () => {
                 </p>
                 {application.sessionLink && (
                   <a
-                    href={`http://localhost:3000${application.sessionLink}`}
+                    href={`${window.location.origin}${application.sessionLink}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold bg-white px-3 py-2 rounded border border-blue-300"
@@ -373,7 +374,7 @@ export const ApplicationDetailPage: React.FC = () => {
           {/* Resume Download */}
           <div className="border-t pt-6">
             <a
-              href={`http://localhost:5000/${application.resume.filePath}`}
+              href={`${API_URL}/${application.resume.filePath}`}
               className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
             >
               <Download size={20} /> Download Resume

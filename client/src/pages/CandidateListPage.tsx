@@ -4,6 +4,7 @@ import { ArrowLeft, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CandidateList from '../components/CandidateList';
 import ResumeUpload from '../components/ResumeUpload';
+import { API_URL } from '../config';
 
 export const CandidateListPage: React.FC = () => {
   const { jobId } = useParams();
@@ -22,7 +23,7 @@ export const CandidateListPage: React.FC = () => {
       const token = localStorage.getItem('token');
 
       // Fetch job
-      const jobRes = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+      const jobRes = await fetch(`${API_URL}/api/jobs/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!jobRes.ok) throw new Error('Failed to fetch job');
@@ -30,7 +31,7 @@ export const CandidateListPage: React.FC = () => {
       setJob(jobData.job);
 
       // Fetch candidates
-      const candRes = await fetch(`http://localhost:5000/api/candidates/${jobId}`, {
+      const candRes = await fetch(`${API_URL}/api/candidates/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!candRes.ok) throw new Error('Failed to fetch candidates');
