@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 import DashboardStats from '../components/DashboardStats';
 import JobCard from '../components/JobCard';
 import TalentMatchUpload from '../components/TalentMatchUpload';
@@ -25,22 +26,42 @@ export const DashboardPage: React.FC = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+
+
+  const [stats, setStats] = useState({
+    totalApplications: 0,
+    interviewsScheduled: 0,
+    hired: 0
+  });
+  const [upcomingInterviews, setUpcomingInterviews] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+
   useEffect(() => {
-    fetchJobs();
+    fetchDashboardData();
   }, []);
 
-  const fetchJobs = async () => {
+  const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Use the 'analyst' or 'recruiter' endpoint logic - assuming /jobs returns jobs for this user
-      const response = await fetch('http://localhost:5000/api/jobs', {
+      // Fetch Jobs
+      const jobsRes = await fetch(`${API_URL}/api/jobs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const jobsData = await jobsRes.json();
+      setJobs(jobsData.jobs || jobsData.data || []);
 
-      if (!response.ok) throw new Error('Failed to fetch jobs');
+      // Fetch Stats
+      const statsRes = await fetch(`${API_URL}/api/applications/dashboard-stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const statsData = await statsRes.json();
 
-      const data = await response.json();
-      setJobs(data.jobs || data.data || []);
+      if (statsData.success) {
+        setStats(statsData.stats);
+        setUpcomingInterviews(statsData.upcomingInterviews);
+        setRecentActivity(statsData.recentActivity);
+      }
+
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -53,13 +74,6 @@ export const DashboardPage: React.FC = () => {
     job.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate generic stats
-  const stats = {
-    totalApplications: jobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0),
-    interviewsScheduled: Math.floor(jobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0) * 0.2), // Mock percentage
-    hired: Math.floor(jobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0) * 0.05), // Mock percentage
-  };
-
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -69,7 +83,7 @@ export const DashboardPage: React.FC = () => {
   if (error) return (
     <div className="p-8 text-center">
       <div className="text-red-500 mb-4">Error: {error}</div>
-      <button onClick={fetchJobs} className="bg-blue-600 text-white px-4 py-2 rounded">Retry</button>
+      <button onClick={fetchDashboardData} className="bg-blue-600 text-white px-4 py-2 rounded">Retry</button>
     </div>
   );
 
@@ -138,10 +152,10 @@ export const DashboardPage: React.FC = () => {
 
           <div className="space-y-6">
             {/* Upcoming Interviews Calendar */}
-            <InterviewCalendar />
+            <InterviewCalendar interviews={upcomingInterviews} />
 
             {/* Recent Activity Feed */}
-            <ActivityTracker />
+            <ActivityTracker activities={recentActivity} />
 
             {/* Talent Pool Match Upload */}
             <TalentMatchUpload />

@@ -9,26 +9,8 @@ interface Interview {
     status: 'scheduled' | 'completed' | 'cancelled';
 }
 
-export const InterviewCalendar: React.FC = () => {
-    const [interviews, setInterviews] = useState<Interview[]>([]);
-
-    useEffect(() => {
-        // Determine upcoming dates for demo
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        const dayAfter = new Date(today);
-        dayAfter.setDate(today.getDate() + 2);
-
-        // Mock data for upcoming interviews
-        const mockInterviews: Interview[] = [
-            { id: '1', candidateName: 'Alice Freeman', jobTitle: 'Frontend Engineer', date: new Date(today.setHours(14, 0)), status: 'scheduled' },
-            { id: '2', candidateName: 'Bob Smith', jobTitle: 'Product Manager', date: new Date(tomorrow.setHours(10, 30)), status: 'scheduled' },
-            { id: '3', candidateName: 'Charlie Davis', jobTitle: 'Backend Dev', date: new Date(tomorrow.setHours(15, 0)), status: 'scheduled' },
-            { id: '4', candidateName: 'Dana Lee', jobTitle: 'UX Designer', date: new Date(dayAfter.setHours(11, 0)), status: 'scheduled' },
-        ];
-        setInterviews(mockInterviews);
-    }, []);
+export const InterviewCalendar: React.FC<{ interviews?: Interview[] }> = ({ interviews = [] }) => {
+    // No internal mock data needed anymore
 
     const formatDate = (date: Date) => {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
@@ -48,8 +30,8 @@ export const InterviewCalendar: React.FC = () => {
                 {interviews.map((interview) => (
                     <div key={interview.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition cursor-pointer group">
                         <div className="flex-shrink-0 flex flex-col items-center justify-center bg-blue-100 text-blue-700 rounded w-12 h-12">
-                            <span className="text-xs font-bold uppercase">{interview.date.toLocaleString('en-US', { month: 'short' })}</span>
-                            <span className="text-lg font-bold leading-none">{interview.date.getDate()}</span>
+                            <span className="text-xs font-bold uppercase">{new Date(interview.date).toLocaleString('en-US', { month: 'short' })}</span>
+                            <span className="text-lg font-bold leading-none">{new Date(interview.date).getDate()}</span>
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -58,7 +40,7 @@ export const InterviewCalendar: React.FC = () => {
                         </div>
 
                         <div className="text-right">
-                            <span className="block text-xs font-medium text-gray-900">{formatTime(interview.date)}</span>
+                            <span className="block text-xs font-medium text-gray-900">{formatTime(new Date(interview.date))}</span>
                             <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">
                                 <Video size={10} /> Remote
                             </span>

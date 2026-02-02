@@ -37,10 +37,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response, next
   }
 });
 
-// Get all jobs
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+// Get all jobs for the authenticated recruiter
+router.get('/', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const jobs = await Job.find().populate('recruiter', 'name email');
+    const jobs = await Job.find({ recruiter: req.userId }).populate('recruiter', 'name email');
 
     res.status(200).json({
       success: true,

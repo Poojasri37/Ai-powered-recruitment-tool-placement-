@@ -10,6 +10,95 @@ interface AuthRequest extends Request {
 
 const router = Router();
 
+// Get dashboard stats (KPIs, Upcoming Interviews, Recent Activity)
+router.get('/dashboard-stats', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // 1. Get all jobs by this recruiter
+    const jobs = await Job.find({ recruiter: req.userId });
+    const jobIds = jobs.map(j => j._id);
+
+    // 2. Get all applications for these jobs
+    const applications = await Application.find({ job: { $in: jobIds } })
+      .populate('job', 'title')
+      .populate('candidate', 'name')
+      .sort({ updatedAt: -1 });
+
+    // 3. Calculate KPIs
+    const totalApplications = applications.length;
+    const interviewsScheduled = applications.filter(a => a.status === 'interview_scheduled').length;
+    const hired = applications.filter(a => a.status === 'accepted').length;
+
+    // 4. Get Upcoming Interviews (status 'interview_scheduled' and date >= now)
+    const now = new Date();
+    const upcomingInterviews = applications
+      .filter(a => a.status === 'interview_scheduled' && a.interviewDate && new Date(a.interviewDate) >= now)
+      .sort((a, b) => new Date(a.interviewDate!).getTime() - new Date(b.interviewDate!).getTime())
+      .slice(0, 5) // Limit to 5
+      .map(a => ({
+        id: a._id,
+        candidateName: (a.candidate as any)?.name || 'Unknown',
+        jobTitle: (a.job as any)?.title || 'Unknown',
+        date: a.interviewDate,
+        status: a.status
+      }));
+
+    // 5. Get Recent Activity (latest 5 updates)
+    // We'll use the sorted applications list we already have
+    const recentActivity = applications.slice(0, 5).map(a => {
+      let type = 'apply';
+      let text = `New application for ${(a.job as any)?.title}`;
+      let color = 'text-purple-600';
+      let bg = 'bg-purple-100';
+
+      if (a.status === 'interview_scheduled') {
+        type = 'interview';
+        text = `Interview scheduled with ${(a.candidate as any)?.name}`;
+        color = 'text-blue-600';
+        bg = 'bg-blue-100';
+      } else if (a.status === 'accepted') {
+        type = 'status';
+        text = `${(a.candidate as any)?.name} hired for ${(a.job as any)?.title}`;
+        color = 'text-green-600';
+        bg = 'bg-green-100';
+      } else if (a.status === 'rejected') {
+        type = 'status';
+        text = `${(a.candidate as any)?.name} rejected`;
+        color = 'text-red-600';
+        bg = 'bg-red-100';
+      } else if (a.status === 'reviewing') {
+        type = 'review';
+        text = `Reviewing ${(a.candidate as any)?.name}'s application`;
+        color = 'text-orange-600';
+        bg = 'bg-orange-100';
+      }
+
+      return {
+        id: a._id,
+        type,
+        text,
+        time: new Date(a.updatedAt || new Date()).toLocaleDateString(), // Simplification, frontend can format relative time
+        timestamp: a.updatedAt || new Date(), // Pass raw timestamp for frontend to format "X mins ago"
+        color,
+        bg
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalApplications,
+        interviewsScheduled,
+        hired
+      },
+      upcomingInterviews,
+      recentActivity
+    });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get all applications for a recruiter's jobs
 router.get('/recruiter/all', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

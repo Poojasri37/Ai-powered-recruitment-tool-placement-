@@ -26,13 +26,18 @@ export const CandidateJobsPage: React.FC = () => {
   // New features
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
   const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
-  // Mock candidate skills for demo matching - in real app, fetch from profile
-  const candidateSkills = ['React', 'TypeScript', 'Node.js', 'Tailwind', 'MongoDB'];
+  const [candidateSkills, setCandidateSkills] = useState<string[]>([]);
 
   useEffect(() => {
     fetchJobs();
     const storedSaved = localStorage.getItem('savedJobs');
     if (storedSaved) setSavedJobIds(JSON.parse(storedSaved));
+
+    // Load candidate skills from local storage (set during login or resume upload)
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.skills) {
+      setCandidateSkills(user.skills);
+    }
   }, []);
 
   const toggleSaveJob = (jobId: string) => {
@@ -150,8 +155,14 @@ export const CandidateJobsPage: React.FC = () => {
                   <p className="text-gray-600 mb-6 text-sm line-clamp-3 leading-relaxed">{job.description}</p>
 
                   <div className="mb-4">
-                    {/* Smart Match Breakdown */}
-                    <JobMatchBreakdown requiredSkills={job.requiredSkills} candidateSkills={candidateSkills} />
+                    {/* Smart Match Breakdown - Only show if candidate has skills */}
+                    {candidateSkills.length > 0 ? (
+                      <JobMatchBreakdown requiredSkills={job.requiredSkills} candidateSkills={candidateSkills} />
+                    ) : (
+                      <div className="text-sm text-gray-500 italic border-l-2 border-gray-300 pl-3">
+                        Upload your resume to see skill matching score.
+                      </div>
+                    )}
                   </div>
                 </div>
 

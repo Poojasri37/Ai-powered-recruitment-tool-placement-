@@ -188,6 +188,11 @@ router.get('/:jobId', authenticateToken, async (req: AuthRequest, res: Response,
       return next(new AppError(404, 'Job not found'));
     }
 
+    // Security Check: Ensure recruiter owns this job
+    if (job.recruiter.toString() !== req.userId) {
+      return next(new AppError(403, 'Not authorized to view candidates for this job'));
+    }
+
     const candidates = await Candidate.find({ job: req.params.jobId }).sort({
       matchScore: -1,
     });
@@ -214,12 +219,21 @@ router.get('/:jobId', authenticateToken, async (req: AuthRequest, res: Response,
 });
 
 // Get single candidate
-router.get('/detail/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/detail/:id', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const candidate = await Candidate.findById(req.params.id).populate('job');
 
     if (!candidate) {
       return next(new AppError(404, 'Candidate not found'));
+    }
+
+    // Security Check: Ensure recruiter owns the job associated with this candidate
+    // If candidate has no job (talent pool), we might need different logic, but assuming job linkage for now
+    if (candidate.job) {
+      const job = await Job.findById((candidate.job as any)._id);
+      if (job && job.recruiter.toString() !== req.userId) {
+        return next(new AppError(403, 'Not authorized to view this candidate'));
+      }
     }
 
     res.status(200).json({
