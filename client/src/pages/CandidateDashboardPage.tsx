@@ -62,7 +62,7 @@ export const CandidateDashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NotificationPanel />
+      <NotificationPanel applications={applications} />
 
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 bg-opacity-90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">

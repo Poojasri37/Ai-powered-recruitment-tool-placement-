@@ -12,7 +12,7 @@ import { ApplicationDetailPage } from './pages/ApplicationDetailPage';
 import { JobApplicationsPage } from './pages/JobApplicationsPage';
 import { TalentMatchPage } from './pages/TalentMatchPage';
 import InterviewPage from './pages/InterviewPage';
-import InterviewCompletePage from './pages/InterviewCompletePage';
+import { CandidateInterviewsPage } from './pages/CandidateInterviewsPage';
 import InterviewResultsPage from './pages/InterviewResultsPage';
 import Layout from './components/layout/Layout';
 
@@ -172,7 +172,7 @@ function App() {
           path="/candidate-interviews-complete"
           element={
             <CandidateRoute>
-              <InterviewCompletePage />
+              <CandidateInterviewsPage />
             </CandidateRoute>
           }
         />
