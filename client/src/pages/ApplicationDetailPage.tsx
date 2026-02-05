@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Mail, Phone, Download, CheckCircle, AlertCircle, Loader, User, Briefcase, Award, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 interface ApplicationDetail {
   _id: string;
@@ -55,7 +56,7 @@ export const ApplicationDetailPage: React.FC = () => {
 
   const fetchApplication = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_URL}/api/applications/detail/${appId}`,
         {
@@ -91,7 +92,7 @@ export const ApplicationDetailPage: React.FC = () => {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
 
       const response = await fetch(
         `${API_URL}/api/interviews/schedule`,

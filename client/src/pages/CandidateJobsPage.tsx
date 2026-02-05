@@ -3,6 +3,7 @@ import { Briefcase, MapPin, DollarSign, Calendar, Bookmark, Eye } from 'lucide-r
 import { Link } from 'react-router-dom';
 import { JobMatchBreakdown } from '../components/candidate/JobMatchBreakdown';
 import { API_URL } from '../config';
+import { getAuthToken, getAuthUser } from '../utils/auth';
 
 interface Job {
   _id: string;
@@ -33,8 +34,8 @@ export const CandidateJobsPage: React.FC = () => {
     const storedSaved = localStorage.getItem('savedJobs');
     if (storedSaved) setSavedJobIds(JSON.parse(storedSaved));
 
-    // Load candidate skills from local storage (set during login or resume upload)
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    // Load candidate skills from auth (set during login or resume upload)
+    const user = getAuthUser() || {};
     if (user.skills) {
       setCandidateSkills(user.skills);
     }
@@ -53,7 +54,7 @@ export const CandidateJobsPage: React.FC = () => {
 
   const fetchJobs = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/api/candidate-jobs`, {
         headers: { Authorization: `Bearer ${token}` },
       });

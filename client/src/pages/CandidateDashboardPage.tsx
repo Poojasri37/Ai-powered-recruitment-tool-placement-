@@ -6,6 +6,7 @@ import { NotificationPanel } from '../components/candidate/NotificationPanel';
 import { InterviewCountdown } from '../components/candidate/InterviewCountdown';
 import { PerformanceReviewCard } from '../components/candidate/PerformanceReviewCard';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 interface Application {
   _id: string;
@@ -37,7 +38,7 @@ export const CandidateDashboardPage: React.FC = () => {
 
   const fetchApplications = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/api/candidate-jobs/candidate/applications/list`, {
         headers: { Authorization: `Bearer ${token}` },
       });

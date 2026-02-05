@@ -16,45 +16,39 @@ import { CandidateInterviewsPage } from './pages/CandidateInterviewsPage';
 import InterviewResultsPage from './pages/InterviewResultsPage';
 import Layout from './components/layout/Layout';
 
+import { clearAuth, getAuthToken, getAuthUser } from './utils/auth';
+
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
-  const [userRole, setUserRole] = useState<'recruiter' | 'candidate' | null>(null);
+  const [authTrigger, setAuthTrigger] = useState(0);
 
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      setUserRole(userData.role);
-    }
-  }, [isAuthenticated]);
-
-  const handleLogin = (token: string) => {
-    setIsAuthenticated(true);
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      setUserRole(userData.role);
-    }
+  const handleLogin = () => {
+    setAuthTrigger(prev => prev + 1);
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const handleLogout = (role: 'recruiter' | 'candidate') => {
+    clearAuth(role);
+    setAuthTrigger(prev => prev + 1);
   };
 
   const RecruiterRoute = ({ children }: { children: React.ReactNode }) => {
-    return isAuthenticated && userRole === 'recruiter' ? (
-      <Layout onLogout={handleLogout}>{children}</Layout>
+    const token = localStorage.getItem('recruiter_token');
+    const userStr = localStorage.getItem('recruiter_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    return token && user?.role === 'recruiter' ? (
+      <Layout onLogout={() => handleLogout('recruiter')}>{children}</Layout>
     ) : (
       <Navigate to="/" />
     );
   };
 
   const CandidateRoute = ({ children }: { children: React.ReactNode }) => {
-    return isAuthenticated && userRole === 'candidate' ? (
-      <Layout onLogout={handleLogout}>{children}</Layout>
+    const token = localStorage.getItem('candidate_token');
+    const userStr = localStorage.getItem('candidate_user');
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    return token && user?.role === 'candidate' ? (
+      <Layout onLogout={() => handleLogout('candidate')}>{children}</Layout>
     ) : (
       <Navigate to="/" />
     );
@@ -66,12 +60,10 @@ function App() {
         <Route
           path="/"
           element={
-            isAuthenticated ? (
-              userRole === 'recruiter' ? (
-                <Navigate to="/dashboard" />
-              ) : (
-                <Navigate to="/candidate-jobs" />
-              )
+            localStorage.getItem('recruiter_token') ? (
+              <Navigate to="/dashboard" />
+            ) : localStorage.getItem('candidate_token') ? (
+              <Navigate to="/candidate-jobs" />
             ) : (
               <LoginPage onLogin={handleLogin} />
             )

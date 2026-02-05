@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Sparkles, Building2, UserCircle } from 'lucide-react';
 import { API_URL } from '../config';
+import { setAuth } from '../utils/auth';
 
 interface LoginPageProps {
   onLogin?: (token: string) => void;
@@ -44,8 +45,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         return;
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      setAuth(data.token, data.user);
       onLogin?.(data.token);
       navigate(data.user.role === 'recruiter' ? '/dashboard' : '/candidate-jobs');
     } catch (err) {
@@ -120,8 +120,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   type="button"
                   onClick={() => setUserType('recruiter')}
                   className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${userType === 'recruiter'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   <Building2 size={16} /> Recruiter
@@ -130,8 +130,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   type="button"
                   onClick={() => setUserType('candidate')}
                   className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${userType === 'candidate'
-                      ? 'bg-white text-primary shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   <UserCircle size={16} /> Candidate

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ArrowLeft, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 export const CandidateDetailPage: React.FC = () => {
   const { candidateId } = useParams();
@@ -16,7 +17,7 @@ export const CandidateDetailPage: React.FC = () => {
 
   const fetchCandidate = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/api/candidates/detail/${candidateId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import CandidateList from '../components/CandidateList';
 import ResumeUpload from '../components/ResumeUpload';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 export const CandidateListPage: React.FC = () => {
   const { jobId } = useParams();
@@ -20,7 +21,7 @@ export const CandidateListPage: React.FC = () => {
 
   const fetchJobAndCandidates = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
 
       // Fetch job
       const jobRes = await fetch(`${API_URL}/api/jobs/${jobId}`, {

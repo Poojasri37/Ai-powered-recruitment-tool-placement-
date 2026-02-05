@@ -7,6 +7,7 @@ import { ApplicationFilters } from '../components/applications/ApplicationFilter
 import { ComparisonModal } from '../components/applications/ComparisonModal';
 import { ScheduleInterviewModal } from '../components/applications/ScheduleInterviewModal';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 // import { jsPDF } from 'jspdf';
 // import autoTable from 'jspdf-autotable'; 
 
@@ -76,7 +77,7 @@ export const JobApplicationsPage: React.FC = () => {
 
   const fetchJobAndApplications = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
 
       const jobRes = await fetch(`${API_URL}/api/jobs/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -143,7 +144,7 @@ export const JobApplicationsPage: React.FC = () => {
   const handleScheduleConfirm = async (date: string, notes: string) => {
     if (!schedulingAppId) return;
 
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const response = await fetch(`${API_URL}/api/interviews/schedule`, {
       method: 'POST',
       headers: {

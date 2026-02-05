@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Mail, Calendar, FileText, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 interface Application {
   _id: string;
@@ -31,7 +32,7 @@ const ApplicationsList: React.FC<ApplicationsListProps> = ({ jobId, onRefresh })
 
   const fetchApplications = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_URL}/api/applications/job/${jobId}`,
         {

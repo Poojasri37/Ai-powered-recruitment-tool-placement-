@@ -4,6 +4,7 @@ import { Upload, AlertCircle, ArrowLeft, Check, ChevronRight } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import { ResumePreview } from '../components/candidate/ResumePreview';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 export const ApplyJobPage: React.FC = () => {
   const { jobId } = useParams();
@@ -57,7 +58,7 @@ export const ApplyJobPage: React.FC = () => {
       formData.append('resume', file);
       // In a real app we would send the curated skills too
       // formData.append('skills', JSON.stringify(parsedSkills));
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/api/candidate-jobs/${jobId}/apply`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

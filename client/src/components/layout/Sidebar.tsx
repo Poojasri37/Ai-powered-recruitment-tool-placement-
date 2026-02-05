@@ -11,6 +11,7 @@ import {
     ChevronRight,
     Sparkles
 } from 'lucide-react';
+import { getAuthUser } from '../../utils/auth';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -19,7 +20,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout }) => {
-    const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
+    const user = getAuthUser();
     const isRecruiter = user?.role === 'recruiter';
     const location = useLocation();
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { API_URL } from '../config';
 import { FileText, Calendar, CheckCircle, Clock, Star, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getAuthToken } from '../utils/auth';
 
 interface Interview {
     _id: string;
@@ -34,7 +35,7 @@ export const CandidateInterviewsPage: React.FC = () => {
 
     const fetchInterviews = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const response = await fetch(`${API_URL}/api/candidate-jobs/candidate/applications/list`, {
                 headers: { Authorization: `Bearer ${token}` },
             });

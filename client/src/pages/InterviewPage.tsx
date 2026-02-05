@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, Mic, MicOff, Send, AlertCircle, CheckCircle } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 interface SessionData {
   sessionId: string;
@@ -79,7 +80,7 @@ export default function InterviewPage() {
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<any>(null); // Not really used for speech synthesis instance, but kept for consistency
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
 
   useEffect(() => {
     fetchSessionData();

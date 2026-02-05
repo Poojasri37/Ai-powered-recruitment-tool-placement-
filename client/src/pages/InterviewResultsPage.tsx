@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Share2, AlertCircle } from 'lucide-react';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 interface InterviewResult {
   sessionId: string;
@@ -32,7 +33,7 @@ export default function InterviewResultsPage() {
   const [results, setResults] = useState<InterviewResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
 
   useEffect(() => {
     fetchResults();

@@ -7,6 +7,7 @@ import JobCard from '../components/JobCard';
 import { DashboardAnalytics } from '../components/dashboard/DashboardAnalytics';
 import { ActivityTracker } from '../components/dashboard/ActivityTracker';
 import { InterviewCalendar } from '../components/dashboard/InterviewCalendar';
+import { getAuthToken } from '../utils/auth';
 
 export interface Job {
   _id: string;
@@ -43,7 +44,7 @@ export const DashboardPage: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       // Fetch Jobs
       const jobsRes = await fetch(`${API_URL}/api/jobs`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -194,3 +195,5 @@ export const DashboardPage: React.FC = () => {
     </div>
   );
 };
+
+export default DashboardPage;

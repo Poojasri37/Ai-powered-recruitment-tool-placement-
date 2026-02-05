@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Briefcase } from 'lucide-react';
 import { API_URL } from '../config';
+import { getAuthToken } from '../utils/auth';
 
 export const JobFormPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ export const JobFormPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const skills = formData.requiredSkills
         .split(',')
         .map((s) => s.trim())
