@@ -31,7 +31,8 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     process.env.FRONTEND_URL || '*', // Allow configured frontend or all
-    'https://ai-powered-recruitment-tool-kohl.vercel.app' // Explicitly allow the user's Vercel app
+    'https://ai-powered-recruitment-tool-kohl.vercel.app',
+    'https://ai-powered-recruitment-tool-placeme.vercel.app' // New Vercel deployment
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
