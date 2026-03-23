@@ -19,7 +19,7 @@ const jobSchema = new mongoose.Schema<IJob>(
     },
     description: {
       type: String,
-      required: [true, 'Please provide a job description'],
+
     },
     requiredSkills: {
       type: [String],

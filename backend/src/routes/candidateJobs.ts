@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import { parseResume } from '../utils/parseResume';
 import { calculateMatchScore } from '../utils/matching';
+import { calculateAIMatchScore } from '../utils/geminiAI';
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -114,7 +115,12 @@ router.post(
       const parsedData = await parseResume(req.file.path);
 
       // Calculate match score
-      const matchScore = calculateMatchScore(parsedData.skills, job.requiredSkills);
+      const matchScore = await calculateAIMatchScore(
+        parsedData.rawText || JSON.stringify(parsedData),
+        job.title,
+        job.description,
+        job.requiredSkills
+      );
 
       // Create resume document
       const resume = new Resume({

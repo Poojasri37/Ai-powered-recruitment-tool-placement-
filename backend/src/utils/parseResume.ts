@@ -9,6 +9,7 @@ interface ParsedResume {
   skills: string[];
   education: Array<{ degree: string; field: string; institution: string }>;
   experience: Array<{ title: string; company: string; duration: string }>;
+  rawText?: string;
 }
 
 export const parseResume = async (filePath: string): Promise<ParsedResume> => {
@@ -47,6 +48,7 @@ const extractResumeInfo = (text: string): ParsedResume => {
     skills: extractSkills(text),
     education: extractEducation(text),
     experience: extractExperience(text),
+    rawText: text,
   };
 
   return result;

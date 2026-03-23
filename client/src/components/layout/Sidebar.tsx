@@ -9,7 +9,10 @@ import {
     Menu,
     X,
     ChevronRight,
-    Sparkles
+    Sparkles,
+    BarChart,
+    Users,
+    Mic
 } from 'lucide-react';
 import { getAuthUser } from '../../utils/auth';
 
@@ -28,10 +31,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout }) => {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/job-form', label: 'Post a Job', icon: Briefcase },
         { path: '/talent-match', label: 'AI Talent Matcher', icon: Sparkles },
+        { path: '/reports', label: 'Reports', icon: BarChart },
+        { path: '/add-students', label: 'Add Students', icon: Users },
     ] : [
         { path: '/candidate-jobs', label: 'Find Jobs', icon: Briefcase },
         { path: '/candidate-dashboard', label: 'My Applications', icon: FileText },
         { path: '/candidate-interviews-complete', label: 'Interviews', icon: User },
+        { path: '/mock-interview', label: 'Mock Interview', icon: Mic },
     ];
 
     return (
@@ -47,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout }) => {
             {/* Sidebar Container */}
             <aside
                 className={`
-          fixed top-0 left-0 z-50 h-full w-72 
+          fixed top-0 left-0 z-100 h-full w-150
           bg-white/80 backdrop-blur-xl border-r border-white/20 shadow-2xl
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -62,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout }) => {
                                 <Sparkles className="w-6 h-6 text-primary" />
                             </div>
                             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
-                                Recruit AI
+                                RecruitAI
                             </span>
                         </div>
                         <button

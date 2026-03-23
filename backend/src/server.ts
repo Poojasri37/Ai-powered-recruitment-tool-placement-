@@ -20,6 +20,8 @@ import candidateRoutes from './routes/candidates';
 import candidateJobRoutes from './routes/candidateJobs';
 import applicationRoutes from './routes/applications';
 import interviewRoutes from './routes/interviews';
+import reportsRoutes from './routes/reports';
+import mockInterviewRoutes from './routes/mockInterview';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -50,6 +52,8 @@ app.use('/api/candidates', authenticateToken, candidateRoutes);
 app.use('/api/candidate-jobs', authenticateToken, candidateJobRoutes);
 app.use('/api/applications', authenticateToken, applicationRoutes);
 app.use('/api/interviews', authenticateToken, interviewRoutes);
+app.use('/api/reports', authenticateToken, reportsRoutes);
+app.use('/api/mock-interview', authenticateToken, mockInterviewRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

@@ -7,8 +7,8 @@ import { getAuthToken } from '../utils/auth';
 export const JobFormPage: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
-    description: '',
     department: '',
+    description:'',
     location: '',
     type: 'Full-time',
     requiredSkills: '',
@@ -162,7 +162,7 @@ export const JobFormPage: React.FC = () => {
                 rows={6}
                 className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                 placeholder="Describe the job responsibilities, requirements, and benefits..."
-                required
+                
               />
             </div>
 

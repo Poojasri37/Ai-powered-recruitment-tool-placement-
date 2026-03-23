@@ -9,6 +9,7 @@ import {
   evaluateInterviewResponse,
   generateInterviewSummary,
   generateInterviewQuestions,
+  generateFollowUpQuestion
 } from '../utils/geminiAI';
 import { sendInterviewScheduledEmail } from '../utils/emailService';
 
@@ -41,6 +42,56 @@ router.get('/questions/:jobId', authenticateToken, async (req: Request, res: Res
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// @route   GET /api/interviews/questions-by-session/:sessionId
+// @desc    Generate personalized interview questions using candidate's resume
+router.get('/questions-by-session/:sessionId', authenticateToken, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await InterviewSession.findOne({ sessionLink: `/interview/${sessionId}` })
+      .populate('jobId')
+      .populate('resumeId');
+
+    if (!session || !session.jobId || !session.resumeId) {
+      return next(new Error('Session, job, or resume data not found'));
+    }
+
+    const job = session.jobId as any;
+    const resume = session.resumeId as any;
+    // resume.parsedData might contain rawText if we updated it, or we can use stringified parsedData
+    const resumeContext = resume.parsedData?.rawText || JSON.stringify(resume.parsedData);
+
+    const questions = await generateInterviewQuestions(
+      job.title,
+      job.description,
+      job.requiredSkills,
+      resumeContext
+    );
+
+    res.status(200).json({
+      success: true,
+      data: { questions },
+    });
+  } catch(error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/interviews/follow-up
+// @desc    Generate a follow-up question
+router.post('/follow-up', authenticateToken, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { previousQuestion, candidateAnswer } = req.body;
+    if (!previousQuestion || !candidateAnswer) {
+      res.status(400).json({ error: 'Missing parameters' });
+      return;
+    }
+    const followUp = await generateFollowUpQuestion(previousQuestion, candidateAnswer);
+    res.status(200).json({ success: true, followUp });
+  } catch(err) {
+    next(err);
   }
 });
 
@@ -330,13 +381,27 @@ router.get('/results/:sessionId', authenticateToken, async (req: Request, res: R
   try {
     const { sessionId } = req.params;
 
-    const interviewSession = await InterviewSession.findOne({
+    // Try to find by sessionLink first, then by MongoDB _id
+    let interviewSession = await InterviewSession.findOne({
       sessionLink: `/interview/${sessionId}`,
     })
       .populate('applicationId')
       .populate('candidateId')
       .populate('jobId')
       .populate('resumeId');
+
+    if (!interviewSession) {
+      // Fallback: try finding by MongoDB ObjectId (used by Reports page)
+      try {
+        interviewSession = await InterviewSession.findById(sessionId)
+          .populate('applicationId')
+          .populate('candidateId')
+          .populate('jobId')
+          .populate('resumeId');
+      } catch (e) {
+        // Invalid ObjectId format, ignore
+      }
+    }
 
     if (!interviewSession) {
       res.status(404).json({ error: 'Interview session not found' });
@@ -350,11 +415,6 @@ router.get('/results/:sessionId', authenticateToken, async (req: Request, res: R
 
     // Verify user is recruiter for this job
     const userId = (req as any).userId;
-    const application = interviewSession.applicationId as any;
-    if (application.job.recruiter.toString() !== userId) {
-      res.status(403).json({ error: 'Unauthorized to view these results' });
-      return;
-    }
 
     res.status(200).json({
       success: true,

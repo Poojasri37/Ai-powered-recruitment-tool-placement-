@@ -56,7 +56,9 @@ export default function InterviewPage() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [codeAnswer, setCodeAnswer] = useState('');
-  // const [showCodeEditor, setShowCodeEditor] = useState(false); // Removed, derived from question type
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
+  const [isFollowUp, setIsFollowUp] = useState(false);
+  const [followUpQuestionText, setFollowUpQuestionText] = useState('');
 
   // Refs for checking state inside event listeners without closure staleness
   const currentQuestionIndexRef = useRef(0);
@@ -112,7 +114,7 @@ export default function InterviewPage() {
 
       const data = await response.json();
       setSessionData(data.data);
-      generateQuestions(data.data.job.id, data.data.job);
+      generateQuestions(sessionId || '', data.data.job);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load session');
@@ -120,10 +122,10 @@ export default function InterviewPage() {
     }
   };
 
-  const generateQuestions = async (jobId: string, jobData: SessionData['job']) => {
+  const generateQuestions = async (sessionIdParam: string, jobData: SessionData['job']) => {
     try {
-      // Try to get AI-generated questions from backend
-      const response = await fetch(`${API_URL}/api/interviews/questions/${jobId}`, {
+      // Fetch AI generated questions using session context (which includes resume)
+      const response = await fetch(`${API_URL}/api/interviews/questions-by-session/${sessionIdParam}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -143,6 +145,45 @@ export default function InterviewPage() {
     } catch (err) {
       console.error('Failed to fetch AI questions, using defaults:', err);
       setDefaultQuestions(jobData);
+    }
+  };
+
+  const generateFollowUp = async (previousQuestion: string, candidateAnswer: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/interviews/follow-up`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ previousQuestion, candidateAnswer }),
+      });
+      const data = await response.json();
+      if (data.success && data.followUp) {
+        setFollowUpQuestionText(data.followUp);
+        setIsFollowUp(true);
+        // Wait a small bit so state updates then speak it
+        setTimeout(() => speakQuestion(currentQuestionIndexRef.current), 500);
+      } else {
+        // Fallback: Just continue to next question
+        const nextIndex = currentQuestionIndexRef.current + 1;
+        if (nextIndex < questionsRef.current.length) {
+          setCurrentQuestionIndex(nextIndex);
+          setTimeout(() => speakQuestion(nextIndex), 1000);
+        } else {
+          submitInterview();
+        }
+      }
+    } catch(err) {
+      console.error('Follow up error', err);
+      // Fallback: Just continue to next question
+      const nextIndex = currentQuestionIndexRef.current + 1;
+      if (nextIndex < questionsRef.current.length) {
+        setCurrentQuestionIndex(nextIndex);
+        setTimeout(() => speakQuestion(nextIndex), 1000);
+      } else {
+        submitInterview();
+      }
     }
   };
 
@@ -345,12 +386,12 @@ export default function InterviewPage() {
     // Safety check using refs
     if (questionIndex >= questionsRef.current.length) return;
 
-    const question = questionsRef.current[questionIndex];
+    const questionText = isFollowUp ? followUpQuestionText : questionsRef.current[questionIndex].question;
 
     // cancel any current speaking
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(question.question);
+    const utterance = new SpeechSynthesisUtterance(questionText);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
@@ -425,6 +466,33 @@ export default function InterviewPage() {
     // Clear previous error
     setError('');
 
+    if (isFollowUp) {
+      // Save follow-up answer
+      setResponses(prev => [
+        ...prev,
+        {
+          question: followUpQuestionText,
+          answer,
+          type: currentQuestion.type,
+        },
+      ]);
+      
+      setIsFollowUp(false);
+      setFollowUpQuestionText('');
+      setCurrentAnswer('');
+      setCodeAnswer('');
+
+      const nextIndex = idx + 1;
+      if (nextIndex < questionsRef.current.length) {
+        setCurrentQuestionIndex(nextIndex);
+        setTimeout(() => speakQuestion(nextIndex), 1000);
+      } else {
+        submitInterview();
+      }
+      return;
+    }
+
+    // Normal question save
     setResponses(prev => [
       ...prev,
       {
@@ -433,6 +501,14 @@ export default function InterviewPage() {
         type: currentQuestion.type,
       },
     ]);
+    
+    // Now, should we ask a follow-up? Max 1 follow-up per behavioral/technical question
+    if (currentQuestion.type !== 'coding' && !isFollowUp && Math.random() > 0.3) {
+      generateFollowUp(currentQuestion.question, answer);
+      setCurrentAnswer('');
+      setCodeAnswer('');
+      return;
+    }
 
     // Clear answer
     setCurrentAnswer('');
@@ -468,7 +544,7 @@ export default function InterviewPage() {
         codeSubmissions: responses
           .filter((r) => r.type === 'coding')
           .map((r) => ({
-            language: 'javascript',
+            language: codeLanguage,
             code: r.answer,
             output: 'Code evaluation pending',
           })),
@@ -682,9 +758,14 @@ export default function InterviewPage() {
                     </span>
                   </div>
                   <h2 className="text-2xl font-semibold">
-                    {questions[currentQuestionIndex]?.question}
+                    {isFollowUp ? followUpQuestionText : questions[currentQuestionIndex]?.question}
                   </h2>
-                  {questions[currentQuestionIndex]?.guidance && (
+                  {isFollowUp && (
+                     <p className="text-blue-400 mt-3 text-sm font-semibold">
+                       ✨ AI Follow Up
+                     </p>
+                  )}
+                  {!isFollowUp && questions[currentQuestionIndex]?.guidance && (
                     <p className="text-gray-400 mt-3 text-sm">
                       💡 Tip: {questions[currentQuestionIndex].guidance}
                     </p>
@@ -694,10 +775,24 @@ export default function InterviewPage() {
                 {/* Answer Area */}
                 {questions[currentQuestionIndex]?.type === 'coding' ? (
                   <div className="mb-6">
-                    <label className="block text-sm font-medium mb-2">Your Code:</label>
+                    <div className="flex justify-between items-center mb-2">
+                       <label className="block text-sm font-medium">Your Code:</label>
+                       <select 
+                         value={codeLanguage} 
+                         onChange={(e) => setCodeLanguage(e.target.value)}
+                         className="bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:ring-1 p-1"
+                       >
+                         <option value="javascript">JavaScript</option>
+                         <option value="python">Python</option>
+                         <option value="java">Java</option>
+                         <option value="cpp">C++</option>
+                         <option value="csharp">C#</option>
+                       </select>
+                    </div>
                     <Editor
                       height="300px"
                       defaultLanguage="javascript"
+                      language={codeLanguage}
                       value={codeAnswer}
                       onChange={(value) => setCodeAnswer(value || '')}
                       theme="vs-dark"

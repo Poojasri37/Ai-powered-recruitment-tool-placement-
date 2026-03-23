@@ -96,7 +96,8 @@ Be encouraging and specific.`;
 export async function generateInterviewQuestions(
   jobTitle: string,
   jobDescription: string,
-  requiredSkills: string[]
+  requiredSkills: string[],
+  resumeText: string = ''
 ): Promise<
   Array<{
     question: string;
@@ -104,26 +105,26 @@ export async function generateInterviewQuestions(
   }>
 > {
   try {
-    const prompt = `Generate 10 interview questions for a ${jobTitle} role.
+    const prompt = `Generate exactly 17 interview questions for a ${jobTitle} role.
 
 Job Description: ${jobDescription}
 Required Skills: ${requiredSkills.join(', ')}
+Candidate Resume Context (base questions strictly on this):
+${resumeText.substring(0, 3000)}
 
-Return a JSON array with exactly 10 questions in this format:
+Return a JSON array with exactly 17 questions in this format:
 {
   "questions": [
-    { "question": "...", "type": "behavioral" },
+    { "question": "...", "type": "technical" },
     ...
   ]
 }
 
 Question distribution:
-- 2 behavioral
-- 3 technical
-- 2 coding
-- 3 situational
+- 15 questions based on the resume (mix of technical, behavioral, and situational)
+- 2 coding questions
 
-Make questions specific to the role. Keep concise. Return ONLY valid JSON.`;
+Make the questions extremely specific to the candidate's resume and job requirements. Return ONLY valid JSON.`;
 
     const jsonStr = await generateGroqContent(prompt, true);
     const parsed = JSON.parse(jsonStr);
@@ -267,12 +268,129 @@ Only return jobs with score > 40.`;
     const jsonStr = await generateGroqContent(prompt, true);
     const parsed = JSON.parse(jsonStr);
 
-    if (parsed.matches && Array.isArray(parsed.matches)) return parsed.matches;
-    if (Array.isArray(parsed)) return parsed;
-
     return [];
   } catch (error) {
     console.error('Groq job matching error:', error);
     return [];
+  }
+}
+
+export async function calculateAIMatchScore(
+  resumeText: string,
+  jobTitle: string,
+  jobDescription: string,
+  requiredSkills: string[]
+): Promise<number> {
+  try {
+    const prompt = `You are an expert Recruitment AI. Evaluate this resume against the job role and output ONLY a JSON object with a single "score" key (integer 0-100).
+    
+    Resume:
+    ${resumeText.substring(0, 4000)}
+    
+    Job Title: ${jobTitle}
+    Required Skills: ${requiredSkills.join(', ')}
+    Job Description: ${jobDescription.substring(0, 1000)}
+    
+    Determine the fit accurately based on experience, skills, and relevance. Return ONLY valid JSON: { "score": 85 }`;
+
+    const jsonStr = await generateGroqContent(prompt, true);
+    const parsed = JSON.parse(jsonStr);
+    return typeof parsed.score === 'number' ? parsed.score : 0;
+  } catch(error) {
+    console.error('Groq AIMatchScore error', error);
+    return 0;
+  }
+}
+
+export async function generateFollowUpQuestion(
+  previousQuestion: string,
+  candidateAnswer: string
+): Promise<string> {
+  try {
+    const prompt = `The candidate was asked: "${previousQuestion}"
+Their answer was: "${candidateAnswer}"
+
+Based on their answer, generate exactly ONE engaging follow-up question to probe deeper into their reasoning, technical knowledge, or experience. Do not write anything else, just the question itself.`;
+
+    const followUp = await generateGroqContent(prompt, false);
+    return followUp.replace(/["']/g, '').trim();
+  } catch(error) {
+    console.error('Groq follow-up generation error', error);
+    return 'Could you elaborate more on that?';
+  }
+}
+
+export async function generateMockInterviewReport(
+  responses: Array<{ question: string; answer: string; type: string }>,
+  resumeText: string
+): Promise<{
+  overallScore: number;
+  communicationScore: number;
+  technicalScore: number;
+  confidenceScore: number;
+  summary: string;
+  questionAnalysis: Array<{
+    question: string;
+    answer: string;
+    score: number;
+    communicationFeedback: string;
+    technicalFeedback: string;
+    improvementTips: string;
+  }>;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+}> {
+  try {
+    const responsesText = responses.map((r, i) =>
+      `Q${i+1} [${r.type}]: ${r.question}\nAnswer: ${r.answer}`
+    ).join('\n\n');
+
+    const prompt = `You are an expert mock interview evaluator. Analyze these interview answers thoroughly.
+
+Resume Context: ${resumeText.substring(0, 2000)}
+
+Interview Responses:
+${responsesText}
+
+Return a detailed JSON analysis with this exact structure:
+{
+  "overallScore": <0-100>,
+  "communicationScore": <0-100>,
+  "technicalScore": <0-100>,
+  "confidenceScore": <0-100>,
+  "summary": "<2-3 sentence overall assessment>",
+  "questionAnalysis": [
+    {
+      "question": "<the question>",
+      "answer": "<the answer>",
+      "score": <0-100>,
+      "communicationFeedback": "<how well they communicated: clarity, structure, filler words>",
+      "technicalFeedback": "<accuracy of technical content>",
+      "improvementTips": "<specific actionable improvement advice>"
+    }
+  ],
+  "strengths": ["<strength1>", "<strength2>", "<strength3>"],
+  "weaknesses": ["<weakness1>", "<weakness2>"],
+  "recommendations": ["<recommendation1>", "<recommendation2>", "<recommendation3>"]
+}
+
+Be specific and constructive. Return ONLY valid JSON.`;
+
+    const jsonStr = await generateGroqContent(prompt, true);
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('Groq mock report error:', error);
+    return {
+      overallScore: 0,
+      communicationScore: 0,
+      technicalScore: 0,
+      confidenceScore: 0,
+      summary: 'Report generation failed. Please try again.',
+      questionAnalysis: [],
+      strengths: [],
+      weaknesses: [],
+      recommendations: [],
+    };
   }
 }

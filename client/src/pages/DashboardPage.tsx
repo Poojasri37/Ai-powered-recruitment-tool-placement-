@@ -100,9 +100,9 @@ export const DashboardPage: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/40 shadow-sm">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            Recruiter Dashboard <Sparkles className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+            RecruitAI Dashboard <Sparkles className="w-5 h-5 text-yellow-500 fill-yellow-500" />
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Overview of your recruitment pipeline</p>
+          <p className="text-gray-500 text-sm mt-1">Overview of your placement pipeline</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">

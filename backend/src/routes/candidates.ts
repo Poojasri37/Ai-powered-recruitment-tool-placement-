@@ -8,7 +8,9 @@ import { authenticateToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { parseResume } from '../utils/parseResume';
 import { calculateMatchScore } from '../utils/matching';
-import { matchResumeToJobs } from '../utils/geminiAI';
+import { matchResumeToJobs, calculateAIMatchScore } from '../utils/geminiAI';
+import { User } from '../models/User';
+import xlsx from 'xlsx';
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -73,7 +75,12 @@ router.post(
         jobVal = jobId;
         // Parse resume first to get skills
         const parsedData = await parseResume(req.file.path);
-        matchScore = calculateMatchScore(parsedData.skills, job.requiredSkills);
+        matchScore = await calculateAIMatchScore(
+          parsedData.rawText || JSON.stringify(parsedData),
+          job.title,
+          job.description,
+          job.requiredSkills
+        );
 
         // Create candidate with job linkage
         const candidate = new Candidate({
@@ -118,6 +125,74 @@ router.post(
     }
   }
 );
+
+// Bulk upload students/candidates (Placement Side)
+// Accepts excel or csv
+const bulkUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
+router.post('/bulk', authenticateToken, bulkUpload.single('file'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return next(new AppError(400, 'Please upload an excel/csv file'));
+    }
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data: any[] = xlsx.utils.sheet_to_json(sheet);
+
+    if (!data || data.length === 0) {
+      return next(new AppError(400, 'File is empty or invalid format'));
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of data) {
+      const email = row.email || row.Email;
+      const name = row.name || row.Name;
+      const dept = row.department || row.Department || '';
+      const password = row.password || row.Password;
+
+      if (!email || !name || !password) {
+        failCount++;
+        continue;
+      }
+
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        failCount++;
+        continue;
+      }
+
+      try {
+        await User.create({
+          name,
+          email,
+          password,
+          role: 'candidate',
+          // Note: if User schema doesn't have department, we can't store it unless we update the schema.
+          // We'll trust name, email, password for now.
+        });
+        successCount++;
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Bulk import finished`,
+      count: successCount,
+      failed: failCount
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Match resume to jobs
 router.post(
