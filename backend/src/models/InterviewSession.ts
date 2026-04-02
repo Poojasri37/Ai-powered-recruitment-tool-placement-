@@ -17,6 +17,7 @@ export interface IInterviewSession extends Document {
       answer: string;
       type: 'behavioral' | 'technical' | 'coding';
       aiEvaluation: string;
+      score: number;
     }>;
     codeSubmissions: Array<{
       language: string;
@@ -76,6 +77,7 @@ const interviewSessionSchema = new Schema(
           answer: String,
           type: { type: String, enum: ['behavioral', 'technical', 'coding', 'situational'] },
           aiEvaluation: String,
+          score: { type: Number, default: 0, min: 0, max: 10 },
         },
       ],
       codeSubmissions: [

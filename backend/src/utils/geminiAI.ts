@@ -37,12 +37,12 @@ export async function evaluateInterviewResponse(
   type: 'behavioral' | 'technical' | 'coding',
   jobContext: string,
   requiredSkills: string[]
-): Promise<string> {
+): Promise<{ evaluation: string; score: number }> {
   try {
     const prompt =
       type === 'coding'
-        ? `As an expert code reviewer, evaluate this coding response:
-     
+        ? `As an expert code reviewer, evaluate this coding response and assign a STRICT score out of 10.
+
 Question: ${question}
 Candidate's Code:
 \`\`\`
@@ -52,44 +52,78 @@ ${answer}
 Job Requirements: ${requiredSkills.join(', ')}
 Context: ${jobContext}
 
-Provide a concise evaluation (2-3 sentences) covering:
-1. Code correctness and logic
-2. Code quality and best practices
-3. Efficiency and optimization potential
-Be constructive and specific.`
+Return a JSON object with this EXACT format:
+{
+  "score": <integer 1-10>,
+  "evaluation": "<2-3 sentence evaluation covering: code correctness, quality, and efficiency>"
+}
+
+STRICT Score guide (be realistic, assign 2-3 for poor/irrelevant answers instead of 0):
+- 1-3: Poor attempt, completely wrong, irrelevant, or incomplete logic
+- 4-5: Somewhat correct approach but significant issues
+- 6-7: Good working solution with minor issues
+- 8-9: Excellent solution, clean and efficient
+- 10: Perfect, production-quality code
+
+If the answer is vague, incomplete, or nonsensical, give a LOW score (1-3). Do NOT give 0. Do NOT inflate scores.
+Return ONLY valid JSON.`
         : type === 'technical'
-          ? `As a senior technical interviewer, evaluate this technical response:
-     
+          ? `As a senior technical interviewer, evaluate this technical response and assign a STRICT score out of 10.
+
 Question: ${question}
 Candidate's Answer: ${answer}
 
 Required Skills: ${requiredSkills.join(', ')}
 Job Context: ${jobContext}
 
-Provide a concise evaluation (2-3 sentences) covering:
-1. Technical accuracy and depth
-2. Problem-solving approach
-3. Communication clarity
-Be constructive and encouraging.`
-          : `As an HR expert, evaluate this behavioral response:
-     
+Return a JSON object with this EXACT format:
+{
+  "score": <integer 1-10>,
+  "evaluation": "<2-3 sentence evaluation covering: technical accuracy, problem-solving approach, and communication clarity>"
+}
+
+STRICT Score guide (be realistic, assign 2-3 for poor/irrelevant answers instead of 0):
+- 1-3: No meaningful answer, vague, inaccurate, or poorly articulated
+- 4-5: Shows basic understanding but lacks depth or has errors
+- 6-7: Good technical understanding with clear explanation
+- 8-9: Excellent, demonstrating deep knowledge
+- 10: Perfect, expert-level answer
+
+If the answer is vague, incomplete, or nonsensical, give a LOW score (1-3). Do NOT give 0. Do NOT inflate scores.
+Return ONLY valid JSON.`
+          : `As an HR expert, evaluate this behavioral response and assign a STRICT score out of 10.
+
 Question: ${question}
 Candidate's Answer: ${answer}
 
 Job Context: ${jobContext}
 Required Skills: ${requiredSkills.join(', ')}
 
-Provide a concise evaluation (2-3 sentences) covering:
-1. Relevance to the job
-2. Demonstration of key competencies
-3. Communication and clarity
-Be encouraging and specific.`;
+Return a JSON object with this EXACT format:
+{
+  "score": <integer 1-10>,
+  "evaluation": "<2-3 sentence evaluation covering: relevance to the job, demonstration of key competencies, and communication clarity>"
+}
 
-    const evaluation = await generateGroqContent(prompt);
-    return evaluation || 'Unable to generate evaluation';
+STRICT Score guide (be realistic, assign 2-3 for poor/irrelevant answers instead of 0):
+- 1-3: No meaningful answer, vague, generic, or completely irrelevant
+- 4-5: Shows some relevance but lacks detail or structure
+- 6-7: Good answer with clear examples and relevance
+- 8-9: Excellent, well-structured with strong examples
+- 10: Perfect, compelling answer with deep insight
+
+If the answer is vague, incomplete, or nonsensical, give a LOW score (1-3). Do NOT give 0. Do NOT inflate scores.
+Return ONLY valid JSON.`;
+
+    const jsonStr = await generateGroqContent(prompt, true);
+    const parsed = JSON.parse(jsonStr);
+    return {
+      evaluation: parsed.evaluation || 'Unable to generate evaluation',
+      score: typeof parsed.score === 'number' ? Math.min(10, Math.max(1, parsed.score)) : 2,
+    };
   } catch (error) {
     console.error('Groq evaluation error:', error);
-    return 'Evaluation pending - technical assessment required';
+    return { evaluation: 'Evaluation pending - technical assessment required', score: 0 };
   }
 }
 

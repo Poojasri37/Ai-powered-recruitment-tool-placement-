@@ -1,11 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
 import dns from 'dns';
-try {
-  // Attempt to use Google DNS to bypass local ISP restriction on SRV records
-  dns.setServers(['8.8.8.8', '8.8.4.4']);
-} catch (e) {
-  console.log('Could not set custom DNS servers');
-}
+// try {
+//   // Attempt to use Google DNS to bypass local ISP restriction on SRV records
+//   dns.setServers(['8.8.8.8', '8.8.4.4']);
+// } catch (e) {
+//   console.log('Could not set custom DNS servers');
+// }
 import cors from 'cors';
 import 'dotenv/config';
 import 'express-async-errors';

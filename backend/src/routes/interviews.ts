@@ -306,31 +306,39 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
       return;
     }
 
-    // Use Gemini to evaluate responses
+    // Use Gemini to evaluate responses with per-question scores
     const job = interviewSession.jobId as any;
     let evaluatedResponses = responses;
 
     try {
       evaluatedResponses = await Promise.all(
-        responses.map(async (r: any) => ({
-          ...r,
-          aiEvaluation: await evaluateInterviewResponse(
+        responses.map(async (r: any) => {
+          const result = await evaluateInterviewResponse(
             r.question,
             r.answer,
             r.type,
             job.description,
             job.requiredSkills
-          ),
-        }))
+          );
+          return {
+            ...r,
+            aiEvaluation: result.evaluation,
+            score: result.score,
+          };
+        })
       );
     } catch (evalError) {
       console.error('Error during AI evaluation:', evalError);
-      // Continue with empty evaluations if Gemini fails
+      // Continue with empty evaluations if AI fails
       evaluatedResponses = responses.map((r: any) => ({
         ...r,
         aiEvaluation: 'Evaluation pending',
+        score: 0,
       }));
     }
+
+    // Calculate overall score as the accumulated SUM of all per-question scores (each out of 10)
+    const calculatedScore = evaluatedResponses.reduce((acc: number, r: any) => acc + (r.score || 0), 0);
 
     // Generate interview summary using Gemini
     let aiSummary = summary;
@@ -340,9 +348,9 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
       console.error('Error generating summary:', summaryError);
     }
 
-    // Store results
+    // Store results with correctly calculated score
     interviewSession.interviewResults = {
-      score,
+      score: calculatedScore,
       summary: aiSummary,
       responses: evaluatedResponses,
       codeSubmissions,
@@ -356,7 +364,7 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
     const application = await Application.findById(interviewSession.applicationId);
     if (application) {
       application.interviewResults = {
-        score,
+        score: calculatedScore,
         summary: aiSummary,
         timestamp: new Date(),
       };
@@ -367,7 +375,7 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
     res.status(200).json({
       success: true,
       message: 'Interview results submitted successfully',
-      data: { status: interviewSession.status, score, summary: aiSummary },
+      data: { status: interviewSession.status, score: calculatedScore, summary: aiSummary },
     });
   } catch (error) {
     next(error);

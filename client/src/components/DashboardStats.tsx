@@ -1,11 +1,13 @@
 import React from 'react';
-import { Users, TrendingUp, FileText, ArrowUpRight } from 'lucide-react';
+import { Users, TrendingUp, FileText, ArrowUpRight, CheckCircle, Award } from 'lucide-react';
 
 interface DashboardStatsProps {
   stats: {
     totalApplications?: number;
     interviewsScheduled?: number;
     hired?: number;
+    interviewsCompleted?: number;
+    averageInterviewScore?: number;
     [key: string]: any;
   };
 }
@@ -29,6 +31,22 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats: inputStats }) =>
       bgIcon: 'bg-emerald-50',
     },
     {
+      label: 'Interviews Completed',
+      value: inputStats.interviewsCompleted || 0,
+      icon: CheckCircle,
+      gradient: 'from-cyan-500 to-cyan-600',
+      iconColor: 'text-cyan-500',
+      bgIcon: 'bg-cyan-50',
+    },
+    {
+      label: 'Avg Interview Score',
+      value: inputStats.averageInterviewScore || 0,
+      icon: Award,
+      gradient: 'from-amber-500 to-amber-600',
+      iconColor: 'text-amber-500',
+      bgIcon: 'bg-amber-50',
+    },
+    {
       label: 'Candidates Hired',
       value: inputStats.hired || 0,
       icon: TrendingUp,
@@ -39,7 +57,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats: inputStats }) =>
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-slide-up">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8 animate-slide-up">
       {stats.map((stat, idx) => {
         const Icon = stat.icon;
         return (

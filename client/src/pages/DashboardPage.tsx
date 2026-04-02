@@ -31,10 +31,13 @@ export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState({
     totalApplications: 0,
     interviewsScheduled: 0,
-    hired: 0
+    hired: 0,
+    interviewsCompleted: 0,
+    averageInterviewScore: 0
   });
   const [upcomingInterviews, setUpcomingInterviews] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'draft'>('all');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
@@ -58,8 +61,38 @@ export const DashboardPage: React.FC = () => {
       });
       const statsData = await statsRes.json();
 
-      if (statsData.success) {
-        setStats(statsData.stats);
+      // Fetch all applications (for analytics charts)
+      const appsRes = await fetch(`${API_URL}/api/applications/recruiter/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const appsData = await appsRes.json();
+
+      if (appsData.success) {
+        setAllApplications(appsData.applications || []);
+
+        // Calculate interview stats from applications
+        const completedInterviews = (appsData.applications || []).filter(
+          (a: any) => a.interviewResults && a.interviewResults.score != null
+        );
+        const avgScore = completedInterviews.length > 0
+          ? Math.round(completedInterviews.reduce((sum: number, a: any) => sum + (a.interviewResults?.score || 0), 0) / completedInterviews.length)
+          : 0;
+
+        if (statsData.success) {
+          setStats({
+            ...statsData.stats,
+            interviewsCompleted: completedInterviews.length,
+            averageInterviewScore: avgScore
+          });
+          setUpcomingInterviews(statsData.upcomingInterviews);
+          setRecentActivity(statsData.recentActivity);
+        }
+      } else if (statsData.success) {
+        setStats({
+          ...statsData.stats,
+          interviewsCompleted: 0,
+          averageInterviewScore: 0
+        });
         setUpcomingInterviews(statsData.upcomingInterviews);
         setRecentActivity(statsData.recentActivity);
       }
@@ -129,7 +162,7 @@ export const DashboardPage: React.FC = () => {
       <DashboardStats stats={stats} />
 
       {/* Analytics Charts */}
-      <DashboardAnalytics jobs={jobs} applications={[]} />
+      <DashboardAnalytics jobs={jobs} applications={allApplications} />
 
       {/* Middle Section: Calendar & Activity */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">

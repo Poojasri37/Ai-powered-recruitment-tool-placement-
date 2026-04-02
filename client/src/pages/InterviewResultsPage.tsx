@@ -16,6 +16,7 @@ interface InterviewResult {
       answer: string;
       type: string;
       aiEvaluation: string;
+      score: number;
     }>;
     codeSubmissions: Array<{
       language: string;
@@ -59,9 +60,17 @@ export default function InterviewResultsPage() {
     }
   };
 
+  const getScoreColor = (score: number) => {
+    if (score >= 7) return { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', bar: 'bg-emerald-500' };
+    if (score >= 5) return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200', bar: 'bg-yellow-500' };
+    if (score > 0) return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', bar: 'bg-red-500' };
+    return { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-200', bar: 'bg-gray-400' };
+  };
+
   const downloadReport = () => {
     if (!results) return;
 
+    const computedScore = results.results.responses.reduce((sum, r) => sum + (r.score || 0), 0);
     const reportContent = `
 INTERVIEW EVALUATION REPORT
 ====================================
@@ -70,14 +79,14 @@ Candidate: ${results.candidateName}
 Position: ${results.jobTitle}
 Date: ${new Date().toLocaleDateString()}
 
-OVERALL SCORE: ${results.results.score}/100
+OVERALL SCORE: ${computedScore} / ${results.results.responses.length * 10}
 
 SUMMARY:
 ${results.results.summary}
 
 INTERVIEW RESPONSES:
 ${results.results.responses.map((r, i) => `
-${i + 1}. [${r.type.toUpperCase()}]
+${i + 1}. [${r.type.toUpperCase()}] Score: ${r.score}/10
 Question: ${r.question}
 Answer: ${r.answer}
 AI Evaluation: ${r.aiEvaluation}
@@ -140,6 +149,8 @@ ${results.results.transcript}
 
   if (!results) return <div className="text-center py-10">No results found</div>;
 
+  const computedScore = results.results.responses.reduce((sum, r) => sum + (r.score || 0), 0);
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -168,9 +179,42 @@ ${results.results.transcript}
 
         {/* Score Card */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-8 mb-8">
-          <p className="text-blue-100 mb-2">Overall Score</p>
-          <p className="text-5xl font-bold mb-2">{results.results.score}%</p>
+          <p className="text-blue-100 mb-2">Overall Interview Score (Accumulated Total)</p>
+          <p className="text-5xl font-bold mb-2">{computedScore} <span className="text-2xl font-normal text-blue-200">/ {results.results.responses.length * 10}</span></p>
           <p className="text-blue-100">{results.results.summary}</p>
+        </div>
+
+        {/* Per-Question Score Breakdown */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-8">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Score Breakdown by Question</h2>
+          </div>
+          <div className="px-6 py-4">
+            <div className="space-y-3">
+              {results.results.responses.map((response, index) => {
+                const colors = getScoreColor(response.score || 0);
+                return (
+                  <div key={index} className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">{response.question}</p>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mt-1">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-500 ${colors.bar}`}
+                          style={{ width: `${((response.score || 0) / 10) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors.bg} ${colors.text} border ${colors.border} flex-shrink-0`}>
+                      {response.score || 0}/10
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Responses */}
@@ -179,32 +223,40 @@ ${results.results.transcript}
             <h2 className="text-xl font-semibold text-gray-900">Interview Responses</h2>
           </div>
           <div className="divide-y divide-gray-200">
-            {results.results.responses.map((response, index) => (
-              <div key={index} className="px-6 py-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-                      {response.type}
-                    </p>
-                    <p className="text-lg font-medium text-gray-900 mt-1">{response.question}</p>
+            {results.results.responses.map((response, index) => {
+              const colors = getScoreColor(response.score || 0);
+              return (
+                <div key={index} className="px-6 py-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                          {response.type}
+                        </p>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${colors.bg} ${colors.text} border ${colors.border}`}>
+                          Score: {response.score || 0}/10
+                        </span>
+                      </div>
+                      <p className="text-lg font-medium text-gray-900 mt-1">{response.question}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Candidate's Answer:</p>
+                      <p className="text-gray-600 bg-gray-50 rounded p-3 text-sm">{response.answer}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">AI Evaluation:</p>
+                      <p className="text-gray-600 bg-blue-50 rounded p-3 text-sm border-l-4 border-blue-500">
+                        {response.aiEvaluation}
+                      </p>
+                    </div>
                   </div>
                 </div>
-
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Candidate's Answer:</p>
-                    <p className="text-gray-600 bg-gray-50 rounded p-3 text-sm">{response.answer}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">AI Evaluation:</p>
-                    <p className="text-gray-600 bg-blue-50 rounded p-3 text-sm border-l-4 border-blue-500">
-                      {response.aiEvaluation}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

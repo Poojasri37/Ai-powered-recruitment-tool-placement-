@@ -11,6 +11,8 @@ interface ReportStudent {
   applications: number;
   interviewsCompleted: number;
   averageScore: number;
+  recentScore: number;
+  recentMaxScore: number;
   recentInterviewResultId: string | null;
 }
 
@@ -114,7 +116,7 @@ export default function ReportsPage() {
                   <th className="p-4">Email</th>
                   <th className="p-4 text-center">Applications</th>
                   <th className="p-4 text-center">Interviews</th>
-                  <th className="p-4 text-center">Latest Avg Score</th>
+                  <th className="p-4 text-center">Latest Score</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -142,13 +144,19 @@ export default function ReportsPage() {
                       <td className="p-4 text-center font-medium text-gray-700">{student.applications}</td>
                       <td className="p-4 text-center font-medium text-gray-700">{student.interviewsCompleted}</td>
                       <td className="p-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          student.averageScore >= 80 ? 'bg-green-100 text-green-800' :
-                          student.averageScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                          student.averageScore > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {student.averageScore > 0 ? `${Math.round(student.averageScore)}%` : 'No Data'}
-                        </span>
+                        {student.recentMaxScore > 0 ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            (student.recentScore / student.recentMaxScore) >= 0.7 ? 'bg-green-100 text-green-800' :
+                            (student.recentScore / student.recentMaxScore) >= 0.5 ? 'bg-yellow-100 text-yellow-800' :
+                            student.recentScore > 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {student.recentScore}/{student.recentMaxScore}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            No Data
+                          </span>
+                        )}
                       </td>
                       <td className="p-4 text-right space-x-2">
                         {student.recentInterviewResultId ? (

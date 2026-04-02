@@ -57,6 +57,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-background">
+      {/* College Logo - Only on Login Page */}
+      <div className="absolute top-6 left-6 md:top-8 md:left-8 z-50 animate-fade-in">
+        <img 
+          src="/logo.jpeg" 
+          alt="Karpagam College of Engineering Logo" 
+          className="h-16 md:h-24 object-contain bg-white/70 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-white/50"
+          onError={(e) => {
+             // Fallback to online URL if local logo is missing
+             (e.target as HTMLImageElement).src = "https://kce.ac.in/wp-content/uploads/2022/02/KCE-logo-1.png";
+          }}
+        />
+      </div>
+
       {/* Dynamic Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 -z-20" />
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] -z-10 animate-pulse-slow" />
