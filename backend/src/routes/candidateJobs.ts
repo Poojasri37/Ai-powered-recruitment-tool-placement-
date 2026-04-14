@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { Job } from '../models/Job';
 import { Resume } from '../models/Resume';
 import { Application } from '../models/Application';
+import { User } from '../models/User';
 import { authenticateToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import multer from 'multer';
@@ -113,6 +114,16 @@ router.post(
 
       // Parse resume
       const parsedData = await parseResume(req.file.path);
+
+      // Email fallback if parser fails
+      if (!parsedData.email) {
+        const user = await User.findById(req.userId);
+        if (user) {
+          parsedData.email = user.email;
+        } else {
+          parsedData.email = 'unknown@example.com'; // Absolute fallback
+        }
+      }
 
       // Calculate match score
       const matchScore = await calculateAIMatchScore(

@@ -75,6 +75,17 @@ router.post(
         jobVal = jobId;
         // Parse resume first to get skills
         const parsedData = await parseResume(req.file.path);
+        
+        // Email fallback if parser fails
+        if (!parsedData.email) {
+          const user = await User.findById(req.userId);
+          if (user) {
+            parsedData.email = user.email;
+          } else {
+            parsedData.email = 'candidate-upload@example.com';
+          }
+        }
+
         matchScore = await calculateAIMatchScore(
           parsedData.rawText || JSON.stringify(parsedData),
           job.title,
@@ -100,6 +111,16 @@ router.post(
 
       // If no jobId (Talent Pool / General Upload), just parse and save
       const parsedData = await parseResume(req.file.path);
+
+      // Email fallback if parser fails
+      if (!parsedData.email) {
+        const user = await User.findById(req.userId);
+        if (user) {
+          parsedData.email = user.email;
+        } else {
+          parsedData.email = 'talent-pool@example.com';
+        }
+      }
 
       const candidate = new Candidate({
         ...parsedData,

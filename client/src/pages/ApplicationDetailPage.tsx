@@ -34,7 +34,36 @@ interface ApplicationDetail {
     summary: string;
   };
   notes?: string;
-  createdAt?: string;
+  create
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  dAt?: string;
 }
 
 export const ApplicationDetailPage: React.FC = () => {

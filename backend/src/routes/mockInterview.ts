@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { Resume } from '../models/Resume';
+import { User } from '../models/User';
 import { Job } from '../models/Job';
 import { parseResume } from '../utils/parseResume';
 import { generateInterviewQuestions, generateMockInterviewReport, calculateAIMatchScore } from '../utils/geminiAI';
@@ -46,6 +47,16 @@ router.post('/upload-resume', upload.single('resume'), async (req: AuthRequest, 
 
     // Parse resume
     const parsedData = await parseResume(req.file.path);
+
+    // Email fallback if parser fails
+    if (!parsedData.email) {
+      const user = await User.findById(req.userId);
+      if (user) {
+        parsedData.email = user.email;
+      } else {
+        parsedData.email = 'candidate-mock@example.com'; 
+      }
+    }
 
     // Save resume
     const resume = new Resume({
