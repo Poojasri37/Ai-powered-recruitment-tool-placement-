@@ -69,6 +69,7 @@ export default function MockInterviewPage() {
   const questionsRef = useRef<Question[]>([]);
   const isFollowUpRef = useRef(false);
   const followUpTextRef = useRef('');
+  const confirmedAnswerRef = useRef('');
 
   useEffect(() => {
     currentQuestionIndexRef.current = currentQuestionIndex;
@@ -197,19 +198,26 @@ export default function MockInterviewPage() {
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'en-US';
 
+        recognitionRef.current.onstart = () => {
+          setIsListening(true);
+        };
+
         recognitionRef.current.onresult = (event: any) => {
-          if (window.speechSynthesis.speaking) {
-            recognitionRef.current.stop();
-            return;
-          }
-          let finalTranscript = '';
+          if (window.speechSynthesis.speaking) return; // Prevent AI from hearing itself
+          
           let interimTranscript = '';
+          let finalTranscript = '';
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) finalTranscript += transcript + ' ';
             else interimTranscript += transcript;
           }
-          const full = finalTranscript || interimTranscript;
+          
+          if (finalTranscript) {
+             confirmedAnswerRef.current += finalTranscript;
+          }
+          
+          const full = confirmedAnswerRef.current + interimTranscript;
           if (full.trim()) setCurrentAnswer(full.trim());
         };
 
@@ -299,6 +307,8 @@ export default function MockInterviewPage() {
   const startListening = () => {
     if (!recognitionRef.current || isSpeaking) return;
     setIsListening(true);
+    // Reset buffers for the NEW question
+    confirmedAnswerRef.current = ''; 
     setCurrentAnswer('');
     try { recognitionRef.current.start(); } catch (e) {}
   };
@@ -352,11 +362,9 @@ export default function MockInterviewPage() {
     // Save normal answer
     setResponses(prev => [...prev, { question: q.question, answer, type: q.type }]);
 
-    // Ask follow-up for non-coding questions (~70% chance)
-    if (q.type !== 'coding' && Math.random() > 0.3) {
+    // Ask follow-up for non-coding questions. Send to backend and let AI decide.
+    if (q.type !== 'coding' && !isFollowUpRef.current) {
       generateFollowUp(q.question, answer);
-      setCurrentAnswer('');
-      setCodeAnswer('');
       return;
     }
 
@@ -619,7 +627,9 @@ export default function MockInterviewPage() {
               </div>
 
               <div className="mt-4 bg-gray-800 rounded-lg p-4">
-                <p className="text-sm text-gray-400 mb-2">Question {currentQuestionIndex + 1} of {questions.length}</p>
+                <p className="text-sm text-gray-400 mb-2">
+                  Question {currentQuestionIndex + 1} of {questions.length} {isFollowUp ? <span className="text-blue-400 font-semibold">(Follow-up)</span> : ''}
+                </p>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div className="bg-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}></div>
                 </div>

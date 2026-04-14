@@ -63,6 +63,9 @@ export default function InterviewPage() {
   // Refs for checking state inside event listeners without closure staleness
   const currentQuestionIndexRef = useRef(0);
   const questionsRef = useRef<Question[]>([]);
+  const isFollowUpRef = useRef(false);
+  const followUpTextRef = useRef('');
+  const confirmedAnswerRef = useRef('');
 
   // Keep refs synced with state
   useEffect(() => {
@@ -72,6 +75,14 @@ export default function InterviewPage() {
   useEffect(() => {
     questionsRef.current = questions;
   }, [questions]);
+
+  useEffect(() => {
+    isFollowUpRef.current = isFollowUp;
+  }, [isFollowUp]);
+
+  useEffect(() => {
+    followUpTextRef.current = followUpQuestionText;
+  }, [followUpQuestionText]);
 
   const [isRecording, setIsRecording] = useState(false);
   const [interviewDuration, setInterviewDuration] = useState(0);
@@ -162,6 +173,9 @@ export default function InterviewPage() {
       if (data.success && data.followUp) {
         setFollowUpQuestionText(data.followUp);
         setIsFollowUp(true);
+        // Sync refs
+        isFollowUpRef.current = true;
+        followUpTextRef.current = data.followUp;
         // Wait a small bit so state updates then speak it
         setTimeout(() => speakQuestion(currentQuestionIndexRef.current), 500);
       } else {
@@ -298,11 +312,7 @@ export default function InterviewPage() {
         };
 
         recognitionRef.current.onresult = (event: any) => {
-          // If the AI is speaking, ignore everything and stop listening
-          if (window.speechSynthesis.speaking) {
-            recognitionRef.current.stop();
-            return;
-          }
+          if (window.speechSynthesis.speaking) return; // Prevent AI from hearing itself
 
           let interimTranscript = '';
           let finalTranscript = '';
@@ -316,22 +326,14 @@ export default function InterviewPage() {
             }
           }
 
-          // Update with final + interim text
-          const fullTranscript = finalTranscript || interimTranscript;
-          if (fullTranscript.trim()) {
-            setCurrentAnswer(prev => {
-              // Determine if we should append or replace based on context
-              // For simplicity, we'll replace if the new result is comprehensive
-              // But better to just set it as the current recognition buffer
-              return fullTranscript.trim();
-            });
+          if (finalTranscript) {
+             confirmedAnswerRef.current += finalTranscript;
           }
 
-          // Auto-submit logic moved to a manual trigger or more careful silence detection
-          // The previous 2s silence detection inside onresult is flaky because onresult fires repeatedly
-          // We'll rely on a manual submit or a more robust silence detector if needed.
-          // For now, disabling auto-submit to prevent "barge-in" errors and premature skipping
-          // Users prefer control over when they are done.
+          const fullTranscript = confirmedAnswerRef.current + interimTranscript;
+          if (fullTranscript.trim()) {
+            setCurrentAnswer(fullTranscript.trim());
+          }
         };
 
         recognitionRef.current.onerror = (event: any) => {
@@ -412,6 +414,7 @@ export default function InterviewPage() {
     if (!recognitionRef.current || isSpeaking) return;
 
     setIsListening(true);
+    confirmedAnswerRef.current = '';
     setCurrentAnswer(''); // Reset for new answer segment
     setError('');
 
@@ -479,6 +482,8 @@ export default function InterviewPage() {
       
       setIsFollowUp(false);
       setFollowUpQuestionText('');
+      isFollowUpRef.current = false;
+      followUpTextRef.current = '';
       setCurrentAnswer('');
       setCodeAnswer('');
 
@@ -503,10 +508,8 @@ export default function InterviewPage() {
     ]);
     
     // Now, should we ask a follow-up? Max 1 follow-up per behavioral/technical question
-    if (currentQuestion.type !== 'coding' && !isFollowUp && Math.random() > 0.3) {
+    if (currentQuestion.type !== 'coding' && !isFollowUpRef.current) {
       generateFollowUp(currentQuestion.question, answer);
-      setCurrentAnswer('');
-      setCodeAnswer('');
       return;
     }
 
@@ -703,7 +706,7 @@ export default function InterviewPage() {
               {/* Question Progress */}
               <div className="mt-4 bg-gray-800 rounded-lg p-4">
                 <p className="text-sm text-gray-400 mb-2">
-                  Question {currentQuestionIndex + 1} of {questions.length}
+                  Question {currentQuestionIndex + 1} of {questions.length} {isFollowUp ? <span className="text-blue-400 font-semibold">(Follow-up)</span> : ''}
                 </p>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div
