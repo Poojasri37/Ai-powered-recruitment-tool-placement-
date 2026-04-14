@@ -364,12 +364,19 @@ export async function calculateAIMatchScore(
     Determine the fit accurately based on experience, skills, and relevance. Return ONLY valid JSON: { "score": 85 }`;
 
     const jsonStr = await generateGroqContent(prompt, true);
-    const parsed = JSON.parse(jsonStr);
+    let score = 0;
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (typeof parsed.score === 'number') {
+        score = parsed.score;
+      } else if (typeof parsed.score === 'string') {
+        score = parseInt(parsed.score) || 0;
+      }
+    } catch (parseErr) {
+      console.error('Failed to parse score from JSON:', jsonStr);
+    }
     
-    // Robust parsing for score (handles both number and string)
-    const score = typeof parsed.score === 'number' ? parsed.score : parseInt(parsed.score);
-    
-    if (!isNaN(score) && score > 0) {
+    if (score > 0) {
       return Math.min(100, score);
     }
 

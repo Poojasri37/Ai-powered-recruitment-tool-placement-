@@ -158,25 +158,22 @@ router.post(
       // Populate references
       await application.populate(['job', 'candidate', 'resume']);
 
-      res.status(201).json({
+      // Send email received notification ASYNCHRONOUSLY
+      // Don't await this to keep the response fast for the user
+      const recruiterName = (job.recruiter as any)?.name || 'Hiring Team';
+      sendApplicationReceivedEmail(
+        parsedData.name || 'Candidate',
+        parsedData.email,
+        job.title,
+        recruiterName
+      ).catch(emailErr => console.error('Failed to send application received email:', emailErr));
+
+      return res.status(201).json({
         success: true,
         message: 'Application submitted successfully',
         application,
         matchScore,
       });
-
-      // Send email received notification
-      try {
-        const recruiterName = (job.recruiter as any)?.name || 'Hiring Team';
-        await sendApplicationReceivedEmail(
-          parsedData.name || 'Candidate',
-          parsedData.email,
-          job.title,
-          recruiterName
-        );
-      } catch (emailErr) {
-        console.error('Failed to send application received email:', emailErr);
-      }
     } catch (error) {
       if (req.file) {
         fs.unlink(req.file.path, (err) => {

@@ -19,7 +19,7 @@ class AIRequestQueue {
   private readonly maxRetries: number;
   private readonly baseDelayMs: number;
 
-  constructor(maxConcurrent = 5, maxRetries = 3, baseDelayMs = 1000) {
+  constructor(maxConcurrent = 10, maxRetries = 3, baseDelayMs = 1000) {
     this.maxConcurrent = maxConcurrent;
     this.maxRetries = maxRetries;
     this.baseDelayMs = baseDelayMs;
