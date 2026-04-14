@@ -18,6 +18,7 @@ export const ApplyJobPage: React.FC = () => {
     const [step, setStep] = useState(1);
     const [parsedSkills, setParsedSkills] = useState<string[]>([]);
     const [parsedExperience, setParsedExperience] = useState<any[]>([]);
+    const [projectedScore, setProjectedScore] = useState<number | null>(null);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -39,6 +40,8 @@ export const ApplyJobPage: React.FC = () => {
             try {
                 const formData = new FormData();
                 formData.append('resume', selectedFile);
+                if (jobId) formData.append('jobId', jobId);
+                
                 const token = getAuthToken();
 
                 const response = await fetch(`${API_URL}/api/candidates/parse`, {
@@ -51,6 +54,7 @@ export const ApplyJobPage: React.FC = () => {
                 if (data.success) {
                     setParsedSkills(data.data.skills || []);
                     setParsedExperience(data.data.experience || []);
+                    setProjectedScore(data.matchScore || 0);
                     setStep(2);
                 } else {
                     setError(data.error || 'Failed to detect information from resume');
@@ -68,7 +72,10 @@ export const ApplyJobPage: React.FC = () => {
     };
 
     const handleSubmit = async () => {
-        if (!file) return;
+        if (!file || !jobId) {
+            setError('Missing required information. Please try again.');
+            return;
+        }
 
         setLoading(true);
         setError('');
@@ -77,6 +84,9 @@ export const ApplyJobPage: React.FC = () => {
         try {
             const formData = new FormData();
             formData.append('resume', file);
+            // Send updated skills to backend
+            formData.append('skills', JSON.stringify(parsedSkills));
+            
             const token = getAuthToken();
             const response = await fetch(`${API_URL}/api/candidate-jobs/${jobId}/apply`, {
                 method: 'POST',
@@ -90,7 +100,7 @@ export const ApplyJobPage: React.FC = () => {
                 throw new Error(data.error || 'Application failed');
             }
 
-            setSuccess(`Application submitted! Match Score: ${data.matchScore}%`);
+            setSuccess(`Application submitted! Final Score: ${data.matchScore}%`);
             setFile(null);
             setTimeout(() => navigate('/candidate-dashboard'), 2000);
         } catch (err: any) {
@@ -168,18 +178,32 @@ export const ApplyJobPage: React.FC = () => {
                         )}
 
                         {step === 2 && (
-                            <div className="space-y-6 animate-fade-in">
-                                <div className="flex items-center justify-between bg-blue-50/50 text-blue-700 p-4 rounded-xl border border-blue-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-blue-600 text-white p-1 rounded-md">
-                                            <Check size={16} />
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between bg-blue-50/50 text-blue-700 p-4 rounded-xl border border-blue-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-blue-600 text-white p-1 rounded-md">
+                                                <Check size={16} />
+                                            </div>
+                                            <span className="font-bold text-sm">Resume Processed: {file?.name}</span>
                                         </div>
-                                        <span className="font-bold text-sm">Resume Processed: {file?.name}</span>
+                                        <button 
+                                            onClick={() => setStep(1)}
+                                            className="text-xs font-bold hover:underline"
+                                        >Change</button>
                                     </div>
-                                    <button 
-                                        onClick={() => setStep(1)}
-                                        className="text-xs font-bold hover:underline"
-                                    >Change</button>
+
+                                    {projectedScore !== null && (
+                                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-xl text-white flex items-center justify-between shadow-lg">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Initial AI Match Score</p>
+                                                <p className="text-2xl font-black">{projectedScore}%</p>
+                                            </div>
+                                            <div className="h-12 w-12 rounded-full border-4 border-white/20 flex items-center justify-center relative">
+                                                <div className="absolute inset-0 rounded-full border-4 border-white border-t-transparent animate-spin-slow" />
+                                                <span className="text-xs font-black">AI</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <ResumePreview 
@@ -203,7 +227,8 @@ export const ApplyJobPage: React.FC = () => {
                                     <div className="flex gap-4 pt-4">
                                         <button
                                             onClick={handleSubmit}
-                                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-4 rounded-2xl hover:shadow-xl hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-[0.98]"
+                                            disabled={loading}
+                                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-4 rounded-2xl hover:shadow-xl hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Confirm & Submit Application <ChevronRight size={20} />
                                         </button>

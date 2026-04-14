@@ -116,6 +116,18 @@ router.post(
       // Parse resume
       const parsedData = await parseResume(req.file.path);
 
+      // Handle user-updated skills from frontend if provided
+      if (req.body.skills) {
+        try {
+          const updatedSkills = JSON.parse(req.body.skills);
+          if (Array.isArray(updatedSkills)) {
+            parsedData.skills = updatedSkills;
+          }
+        } catch (e) {
+          console.error('Error parsing updated skills:', e);
+        }
+      }
+
       // Email fallback if parser fails
       if (!parsedData.email) {
         const user = await User.findById(req.userId);
@@ -126,7 +138,7 @@ router.post(
         }
       }
 
-      // Calculate match score
+      // Calculate match score using potentially updated skills
       const matchScore = await calculateAIMatchScore(
         parsedData.rawText || JSON.stringify(parsedData),
         job.title,

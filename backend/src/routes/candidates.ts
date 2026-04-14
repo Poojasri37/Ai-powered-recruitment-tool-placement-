@@ -58,7 +58,21 @@ router.post('/parse', authenticateToken, upload.single('resume'), async (req: Au
       return next(new AppError(400, 'Please upload a resume file'));
     }
 
+    const { jobId } = req.body;
     const parsedData = await parseResume(req.file.path);
+    
+    let matchScore = 0;
+    if (jobId) {
+      const job = await Job.findById(jobId);
+      if (job) {
+        matchScore = await calculateAIMatchScore(
+          parsedData.rawText || JSON.stringify(parsedData),
+          job.title,
+          job.description,
+          job.requiredSkills
+        );
+      }
+    }
     
     // Cleanup the temporary file immediately
     fs.unlink(req.file.path, (err) => {
@@ -67,7 +81,8 @@ router.post('/parse', authenticateToken, upload.single('resume'), async (req: Au
 
     res.status(200).json({
       success: true,
-      data: parsedData
+      data: parsedData,
+      matchScore
     });
   } catch (error) {
     if (req.file) {
