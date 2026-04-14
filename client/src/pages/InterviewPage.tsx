@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, Mic, MicOff, Send, AlertCircle, CheckCircle } from 'lucide-react';
 import Editor from '@monaco-editor/react';
@@ -60,29 +60,21 @@ export default function InterviewPage() {
   const [isFollowUp, setIsFollowUp] = useState(false);
   const [followUpQuestionText, setFollowUpQuestionText] = useState('');
 
-  // Refs for checking state inside event listeners without closure staleness
+  // ─── Refs: single source of truth for values used inside callbacks/timers ───
   const currentQuestionIndexRef = useRef(0);
   const questionsRef = useRef<Question[]>([]);
   const isFollowUpRef = useRef(false);
   const followUpTextRef = useRef('');
   const confirmedAnswerRef = useRef('');
+  const isSpeakingRef = useRef(false);
+  const responsesRef = useRef<Response[]>([]);
 
-  // Keep refs synced with state
-  useEffect(() => {
-    currentQuestionIndexRef.current = currentQuestionIndex;
-  }, [currentQuestionIndex]);
-
-  useEffect(() => {
-    questionsRef.current = questions;
-  }, [questions]);
-
-  useEffect(() => {
-    isFollowUpRef.current = isFollowUp;
-  }, [isFollowUp]);
-
-  useEffect(() => {
-    followUpTextRef.current = followUpQuestionText;
-  }, [followUpQuestionText]);
+  // Keep refs synced
+  useEffect(() => { currentQuestionIndexRef.current = currentQuestionIndex; }, [currentQuestionIndex]);
+  useEffect(() => { questionsRef.current = questions; }, [questions]);
+  useEffect(() => { isFollowUpRef.current = isFollowUp; }, [isFollowUp]);
+  useEffect(() => { followUpTextRef.current = followUpQuestionText; }, [followUpQuestionText]);
+  useEffect(() => { responsesRef.current = responses; }, [responses]);
 
   const [isRecording, setIsRecording] = useState(false);
   const [interviewDuration, setInterviewDuration] = useState(0);
@@ -92,16 +84,17 @@ export default function InterviewPage() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
-  const synthesisRef = useRef<any>(null); // Not really used for speech synthesis instance, but kept for consistency
   const token = getAuthToken();
+
+  // Keep isSpeaking ref synced
+  useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
 
   useEffect(() => {
     fetchSessionData();
-    // Cleanup on unmount
     return () => {
       stopInterview();
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try { recognitionRef.current.stop(); } catch(e) {}
       }
       window.speechSynthesis.cancel();
     };
@@ -135,7 +128,6 @@ export default function InterviewPage() {
 
   const generateQuestions = async (sessionIdParam: string, jobData: SessionData['job']) => {
     try {
-      // Fetch AI generated questions using session context (which includes resume)
       const response = await fetch(`${API_URL}/api/interviews/questions-by-session/${sessionIdParam}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -150,7 +142,6 @@ export default function InterviewPage() {
         }));
         setQuestions(aiQuestions);
       } else {
-        // Fallback to default questions
         setDefaultQuestions(jobData);
       }
     } catch (err) {
@@ -159,26 +150,26 @@ export default function InterviewPage() {
     }
   };
 
-  const interruptAI = () => {
-    if (window.speechSynthesis.speaking || isSpeaking) {
+  const interruptAI = useCallback(() => {
+    if (window.speechSynthesis.speaking || isSpeakingRef.current) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      isSpeakingRef.current = false;
       startListening();
     }
-  };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If user is typing in code editor or textarea, don't interrupt
       if ((e.target as HTMLElement).tagName === 'TEXTAREA' || (e.target as HTMLElement).tagName === 'INPUT') return;
-      if (e.code === 'Space' && isSpeaking) {
+      if (e.code === 'Space' && isSpeakingRef.current) {
         e.preventDefault();
         interruptAI();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSpeaking]);
+  }, [interruptAI]);
 
   const generateFollowUp = async (previousQuestion: string, candidateAnswer: string) => {
     try {
@@ -187,8 +178,10 @@ export default function InterviewPage() {
       const filler = fillers[Math.floor(Math.random() * fillers.length)];
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(filler);
-      u.onstart = () => setIsSpeaking(true);
+      u.onstart = () => { setIsSpeaking(true); isSpeakingRef.current = true; };
+      u.onend = () => { /* will be handled by the actual question utterance */ };
       window.speechSynthesis.speak(u);
+
       const response = await fetch(`${API_URL}/api/interviews/follow-up`, {
         method: 'POST',
         headers: {
@@ -198,34 +191,50 @@ export default function InterviewPage() {
         body: JSON.stringify({ previousQuestion, candidateAnswer }),
       });
       const data = await response.json();
+
       if (data.success && data.followUp) {
+        // Set follow-up state BEFORE speaking
         setFollowUpQuestionText(data.followUp);
         setIsFollowUp(true);
         isFollowUpRef.current = true;
         followUpTextRef.current = data.followUp;
-        speakQuestion(currentQuestionIndexRef.current);
+        setCurrentAnswer('');
+        setCodeAnswer('');
+        confirmedAnswerRef.current = '';
+
+        // Speak the follow-up question text directly (not relying on state)
+        speakText(data.followUp);
       } else {
-        // Fallback: Just continue to next question
-        const nextIndex = currentQuestionIndexRef.current + 1;
-        if (nextIndex < questionsRef.current.length) {
-          setCurrentQuestionIndex(nextIndex);
-          speakQuestion(nextIndex);
-        } else {
-          submitInterview();
-        }
+        moveToNextQuestion();
       }
     } catch(err) {
       console.error('Follow up error', err);
-      // Fallback: Just continue to next question
-      const nextIndex = currentQuestionIndexRef.current + 1;
-      if (nextIndex < questionsRef.current.length) {
-        setCurrentQuestionIndex(nextIndex);
-        setTimeout(() => speakQuestion(nextIndex), 1000);
-      } else {
-        submitInterview();
-      }
+      moveToNextQuestion();
     }
   };
+
+  /** Move to the next question or submit if done */
+  const moveToNextQuestion = useCallback(() => {
+    const nextIndex = currentQuestionIndexRef.current + 1;
+    // Clear answer state for the new question
+    setCurrentAnswer('');
+    setCodeAnswer('');
+    confirmedAnswerRef.current = '';
+    setIsFollowUp(false);
+    setFollowUpQuestionText('');
+    isFollowUpRef.current = false;
+    followUpTextRef.current = '';
+
+    if (nextIndex < questionsRef.current.length) {
+      setCurrentQuestionIndex(nextIndex);
+      currentQuestionIndexRef.current = nextIndex;
+      // Speak the next question's text directly from the ref
+      const nextQ = questionsRef.current[nextIndex];
+      setTimeout(() => speakText(nextQ.question), 800);
+    } else {
+      submitInterview();
+    }
+  }, []);
 
   const setDefaultQuestions = (job: SessionData['job']) => {
     const defaultQuestions: Question[] = [
@@ -308,7 +317,6 @@ export default function InterviewPage() {
 
   const startInterview = async () => {
     try {
-      // Request camera and mic permissions
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -327,18 +335,17 @@ export default function InterviewPage() {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true; // Keep listening continuously
+        recognitionRef.current.continuous = true;
         recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'en-US';
 
         recognitionRef.current.onstart = () => {
           setIsListening(true);
-          // Only clear if it's a new question start, otherwise we might clear midway if it restarts
-          // setCurrentAnswer(''); 
         };
 
         recognitionRef.current.onresult = (event: any) => {
-          if (window.speechSynthesis.speaking) return; // Prevent AI from hearing itself
+          // Prevent AI from hearing itself
+          if (isSpeakingRef.current || window.speechSynthesis.speaking) return;
 
           let interimTranscript = '';
           let finalTranscript = '';
@@ -353,7 +360,7 @@ export default function InterviewPage() {
           }
 
           if (finalTranscript) {
-             confirmedAnswerRef.current += finalTranscript;
+            confirmedAnswerRef.current += finalTranscript;
           }
 
           const fullTranscript = confirmedAnswerRef.current + interimTranscript;
@@ -367,12 +374,19 @@ export default function InterviewPage() {
           if (event.error === 'aborted') return;
           console.error('Voice warning:', event.error);
           setIsListening(false);
-          // Auto-restart if it wasn't aborted intentionally
-          // if (interviewStarted && !isSpeaking) startListening();
         };
 
         recognitionRef.current.onend = () => {
           setIsListening(false);
+          // Auto-restart if interview is active and AI isn't speaking
+          // This prevents recognition from silently dying
+          if (!isSpeakingRef.current && !window.speechSynthesis.speaking) {
+            try {
+              recognitionRef.current?.start();
+            } catch(e) {
+              // already started
+            }
+          }
         };
       } else {
         console.warn("Speech Recognition API not supported in this browser.");
@@ -399,53 +413,70 @@ export default function InterviewPage() {
       document.addEventListener('paste', preventCopyPaste as any);
       document.addEventListener('cut', preventCopyPaste as any);
 
-      // Speak the first question
-      // IMPORTANT: Use the ref to ensure we reference the correct questions array
-      setTimeout(() => speakQuestion(0), 1000);
+      // Speak the first question directly by text
+      setTimeout(() => {
+        const firstQ = questionsRef.current[0];
+        if (firstQ) {
+          speakText(firstQ.question);
+        }
+      }, 1000);
     } catch (err) {
       setError('Failed to access camera/mic. Please check permissions.');
     }
   };
 
-  const speakQuestion = (questionIndex: number) => {
+  /**
+   * Core TTS function – speaks the given text string directly.
+   * This avoids stale-closure issues with speakQuestion reading from state.
+   */
+  const speakText = (text: string) => {
     // Stop listening before AI speaks to prevent echo
     stopListening();
 
-    // Safety check using refs
-    if (questionIndex >= questionsRef.current.length) return;
-
-    const questionText = isFollowUp ? followUpQuestionText : questionsRef.current[questionIndex].question;
-
-    // cancel any current speaking
+    // Cancel any current speech
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(questionText);
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
 
     setIsSpeaking(true);
+    isSpeakingRef.current = true;
 
     utterance.onend = () => {
       setIsSpeaking(false);
+      isSpeakingRef.current = false;
       // Auto-start listening after AI finishes speaking
-      // Add a small delay to ensure speaker echo has dissipated
-      setTimeout(() => startListening(), 800);
+      setTimeout(() => startListening(), 600);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      isSpeakingRef.current = false;
     };
 
     window.speechSynthesis.speak(utterance);
   };
 
+  /** Legacy wrapper kept for the "Repeat" button which reads current state */
+  const speakQuestion = (questionIndex: number) => {
+    if (questionIndex >= questionsRef.current.length) return;
+    const text = isFollowUpRef.current
+      ? followUpTextRef.current
+      : questionsRef.current[questionIndex].question;
+    speakText(text);
+  };
+
   const startListening = () => {
-    if (!recognitionRef.current || isSpeaking) return;
+    if (!recognitionRef.current || isSpeakingRef.current || window.speechSynthesis.speaking) return;
 
     setIsListening(true);
     confirmedAnswerRef.current = '';
-    setCurrentAnswer(''); // Reset for new answer segment
+    setCurrentAnswer('');
     setError('');
 
     try {
-      // recognitionRef.current.abort(); // clear any previous buffer
       recognitionRef.current.start();
     } catch (err) {
       // Ignored: already started
@@ -458,7 +489,7 @@ export default function InterviewPage() {
     try {
       recognitionRef.current.stop();
     } catch (err) {
-      console.error('Error stopping speech recognition:', err);
+      // Ignored
     }
   };
 
@@ -476,7 +507,6 @@ export default function InterviewPage() {
   };
 
   const submitAnswer = () => {
-    // Always use refs to get the latest state inside callbacks
     const idx = currentQuestionIndexRef.current;
     const currentQuestion = questionsRef.current[idx];
 
@@ -492,92 +522,69 @@ export default function InterviewPage() {
       return;
     }
 
-    // Clear previous error
     setError('');
 
-    if (isFollowUp) {
+    if (isFollowUpRef.current) {
       // Save follow-up answer
-      setResponses(prev => [
-        ...prev,
-        {
-          question: followUpQuestionText,
-          answer,
-          type: currentQuestion.type,
-        },
-      ]);
-      
-      setIsFollowUp(false);
-      setFollowUpQuestionText('');
-      isFollowUpRef.current = false;
-      followUpTextRef.current = '';
-      setCurrentAnswer('');
-      setCodeAnswer('');
+      const newResponse: Response = {
+        question: followUpTextRef.current,
+        answer,
+        type: currentQuestion.type,
+      };
+      setResponses(prev => [...prev, newResponse]);
+      responsesRef.current = [...responsesRef.current, newResponse];
 
-      const nextIndex = idx + 1;
-      if (nextIndex < questionsRef.current.length) {
-        setCurrentQuestionIndex(nextIndex);
-        setTimeout(() => speakQuestion(nextIndex), 1000);
-      } else {
-        submitInterview();
-      }
+      // Move to next main question
+      moveToNextQuestion();
       return;
     }
 
     // Normal question save
-    setResponses(prev => [
-      ...prev,
-      {
-        question: currentQuestion.question,
-        answer,
-        type: currentQuestion.type,
-      },
-    ]);
-    
-    // Now, should we ask a follow-up? Max 1 follow-up per behavioral/technical question
-    if (currentQuestion.type !== 'coding' && !isFollowUpRef.current) {
+    const newResponse: Response = {
+      question: currentQuestion.question,
+      answer,
+      type: currentQuestion.type,
+    };
+    setResponses(prev => [...prev, newResponse]);
+    responsesRef.current = [...responsesRef.current, newResponse];
+
+    // Clear answer fields immediately
+    setCurrentAnswer('');
+    setCodeAnswer('');
+    confirmedAnswerRef.current = '';
+
+    // Should we ask a follow-up? (only for non-coding questions)
+    if (currentQuestion.type !== 'coding') {
       generateFollowUp(currentQuestion.question, answer);
       return;
     }
 
-    // Clear answer
-    setCurrentAnswer('');
-    setCodeAnswer('');
-
-    // Move to next question using the REF + 1
-    const nextIndex = idx + 1;
-
-    if (nextIndex < questionsRef.current.length) {
-      setCurrentQuestionIndex(nextIndex);
-      // Speak the next question
-      setTimeout(() => speakQuestion(nextIndex), 1000);
-    } else {
-      // Interview complete
-      submitInterview();
-    }
+    // For coding questions, move directly to next
+    moveToNextQuestion();
   };
 
   const submitInterview = async () => {
     try {
       stopInterview();
 
-      // Calculate score (basic implementation)
-      const score = Math.min(100, Math.round((responses.length / questions.length) * 100));
+      const allResponses = responsesRef.current;
+      const score = Math.min(100, Math.round((allResponses.length / questionsRef.current.length) * 100));
 
       const interviewResults = {
         score,
-        summary: `Completed ${responses.length} out of ${questions.length} questions successfully`,
-        responses: responses.map((r) => ({
+        summary: `Completed ${allResponses.length} out of ${questionsRef.current.length} questions successfully`,
+        responses: allResponses.map((r) => ({
           ...r,
           aiEvaluation: 'Awaiting AI evaluation...',
         })),
-        codeSubmissions: responses
+        codeSubmissions: allResponses
           .filter((r) => r.type === 'coding')
           .map((r) => ({
             language: codeLanguage,
             code: r.answer,
             output: 'Code evaluation pending',
           })),
-        transcript: responses.map((r) => `Q: ${r.question}\nA: ${r.answer}`).join('\n\n'),
+        transcript: allResponses.map((r) => `Q: ${r.question}\nA: ${r.answer}`).join('\n\n'),
         duration: interviewDuration,
       };
 
@@ -592,12 +599,18 @@ export default function InterviewPage() {
 
       if (!response.ok) throw new Error('Failed to submit interview');
 
-      // Redirect to confirmation page
       navigate('/candidate-interviews-complete', { state: { score } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit interview');
     }
   };
+
+  // ─── Derived display values ───
+  const displayedQuestion = isFollowUp
+    ? followUpQuestionText
+    : questions[currentQuestionIndex]?.question || '';
+  const displayedType = questions[currentQuestionIndex]?.type || 'behavioral';
+  const displayedGuidance = !isFollowUp ? questions[currentQuestionIndex]?.guidance : undefined;
 
   if (loading) {
     return (
@@ -610,7 +623,7 @@ export default function InterviewPage() {
     );
   }
 
-  if (error) {
+  if (error && !interviewStarted) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-md">
@@ -790,26 +803,26 @@ export default function InterviewPage() {
                 <div className="mb-6 p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="px-3 py-1 bg-blue-600 text-sm rounded-full">
-                      {questions[currentQuestionIndex]?.type.toUpperCase()}
+                      {displayedType.toUpperCase()}
                     </span>
                   </div>
                   <h2 className="text-2xl font-semibold">
-                    {isFollowUp ? followUpQuestionText : questions[currentQuestionIndex]?.question}
+                    {displayedQuestion}
                   </h2>
                   {isFollowUp && (
                      <p className="text-blue-400 mt-3 text-sm font-semibold">
                        ✨ AI Follow Up
                      </p>
                   )}
-                  {!isFollowUp && questions[currentQuestionIndex]?.guidance && (
+                  {displayedGuidance && (
                     <p className="text-gray-400 mt-3 text-sm">
-                      💡 Tip: {questions[currentQuestionIndex].guidance}
+                      💡 Tip: {displayedGuidance}
                     </p>
                   )}
                 </div>
 
                 {/* Answer Area */}
-                {questions[currentQuestionIndex]?.type === 'coding' ? (
+                {displayedType === 'coding' ? (
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                        <label className="block text-sm font-medium">Your Code:</label>
@@ -852,7 +865,10 @@ export default function InterviewPage() {
                     </div>
                     <textarea
                       value={currentAnswer}
-                      onChange={(e) => setCurrentAnswer(e.target.value)}
+                      onChange={(e) => {
+                        setCurrentAnswer(e.target.value);
+                        confirmedAnswerRef.current = e.target.value;
+                      }}
                       onCopy={(e) => { e.preventDefault(); setError('Copy-paste is disabled during the interview'); }}
                       onPaste={(e) => { e.preventDefault(); setError('Copy-paste is disabled during the interview'); }}
                       onCut={(e) => { e.preventDefault(); setError('Copy-paste is disabled during the interview'); }}
@@ -863,7 +879,7 @@ export default function InterviewPage() {
                 )}
 
                 {/* Voice Controls */}
-                {questions[currentQuestionIndex]?.type !== 'coding' && (
+                {displayedType !== 'coding' && (
                   <div className="mb-6 flex gap-2">
                     <button
                       onClick={startListening}
@@ -903,7 +919,7 @@ export default function InterviewPage() {
                     className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold flex items-center justify-center gap-2"
                   >
                     <Send className="h-5 w-5" />
-                    {currentQuestionIndex === questions.length - 1 ? 'Submit Interview' : 'Next Question'}
+                    {currentQuestionIndex === questions.length - 1 && !isFollowUp ? 'Submit Interview' : 'Next Question'}
                   </button>
                   <button
                     onClick={() => {

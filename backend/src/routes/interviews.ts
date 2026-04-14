@@ -60,7 +60,20 @@ router.get('/questions-by-session/:sessionId', authenticateToken, async (req: Re
 
     const job = session.jobId as any;
     const resume = session.resumeId as any;
-    const resumeContext = resume.rawText || JSON.stringify(resume);
+    // Build resume context: prefer rawText, fallback to structured fields
+    let resumeContext = resume.rawText || '';
+    if (!resumeContext) {
+      const parts: string[] = [];
+      if (resume.name) parts.push(`Name: ${resume.name}`);
+      if (resume.skills?.length) parts.push(`Skills: ${resume.skills.join(', ')}`);
+      if (resume.experience?.length) {
+        parts.push('Experience: ' + resume.experience.map((e: any) => `${e.title} at ${e.company} (${e.duration})`).join('; '));
+      }
+      if (resume.education?.length) {
+        parts.push('Education: ' + resume.education.map((e: any) => `${e.degree} in ${e.field} from ${e.institution}`).join('; '));
+      }
+      resumeContext = parts.join('\n') || JSON.stringify(resume);
+    }
 
     const questions = await generateInterviewQuestions(
       job.title,

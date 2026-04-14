@@ -19,6 +19,7 @@ interface IResume {
     company: string;
     duration: string;
   }>;
+  rawText?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -68,6 +69,9 @@ const resumeSchema = new mongoose.Schema<IResume>(
         duration: String,
       },
     ],
+    rawText: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

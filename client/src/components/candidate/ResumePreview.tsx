@@ -7,7 +7,7 @@ interface ResumePreviewProps {
     onUpdate: (skills: string[]) => void;
 }
 
-export const ResumePreview: React.FC<ResumePreviewProps> = ({ initialSkills, onUpdate }) => {
+export const ResumePreview: React.FC<ResumePreviewProps> = ({ initialSkills, initialExperience, onUpdate }) => {
     const [skills, setSkills] = useState<string[]>(initialSkills || []);
     const [newSkill, setNewSkill] = useState('');
     const [isEditing, setIsEditing] = useState(false);
