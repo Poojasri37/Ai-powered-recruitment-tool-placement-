@@ -178,6 +178,7 @@ export const ApplyJobPage: React.FC = () => {
                         )}
 
                         {step === 2 && (
+                            <>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between bg-blue-50/50 text-blue-700 p-4 rounded-xl border border-blue-100">
                                         <div className="flex items-center gap-3">
@@ -234,7 +235,7 @@ export const ApplyJobPage: React.FC = () => {
                                         </button>
                                     </div>
                                 )}
-                            </div>
+                            </>
                         )}
                     </div>
                 </div>
