@@ -159,8 +159,36 @@ export default function InterviewPage() {
     }
   };
 
+  const interruptAI = () => {
+    if (window.speechSynthesis.speaking || isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      startListening();
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // If user is typing in code editor or textarea, don't interrupt
+      if ((e.target as HTMLElement).tagName === 'TEXTAREA' || (e.target as HTMLElement).tagName === 'INPUT') return;
+      if (e.code === 'Space' && isSpeaking) {
+        e.preventDefault();
+        interruptAI();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSpeaking]);
+
   const generateFollowUp = async (previousQuestion: string, candidateAnswer: string) => {
     try {
+      // Zero-latency conversational filler
+      const fillers = ["Hmm...", "I see.", "Interesting.", "Got it.", "Alright, let me process that."];
+      const filler = fillers[Math.floor(Math.random() * fillers.length)];
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(filler);
+      u.onstart = () => setIsSpeaking(true);
+      window.speechSynthesis.speak(u);
       const response = await fetch(`${API_URL}/api/interviews/follow-up`, {
         method: 'POST',
         headers: {
@@ -173,17 +201,15 @@ export default function InterviewPage() {
       if (data.success && data.followUp) {
         setFollowUpQuestionText(data.followUp);
         setIsFollowUp(true);
-        // Sync refs
         isFollowUpRef.current = true;
         followUpTextRef.current = data.followUp;
-        // Wait a small bit so state updates then speak it
-        setTimeout(() => speakQuestion(currentQuestionIndexRef.current), 500);
+        speakQuestion(currentQuestionIndexRef.current);
       } else {
         // Fallback: Just continue to next question
         const nextIndex = currentQuestionIndexRef.current + 1;
         if (nextIndex < questionsRef.current.length) {
           setCurrentQuestionIndex(nextIndex);
-          setTimeout(() => speakQuestion(nextIndex), 1000);
+          speakQuestion(nextIndex);
         } else {
           submitInterview();
         }
@@ -748,8 +774,15 @@ export default function InterviewPage() {
 
                 {/* Status Text */}
                 <div className="text-center mb-6">
-                  {isSpeaking && <p className="text-yellow-400 text-sm font-semibold">🔊 AI is speaking...</p>}
-                  {isListening && <p className="text-green-400 text-sm font-semibold">🎤 Listening to your answer...</p>}
+                  {isSpeaking && (
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                       <p className="text-yellow-400 text-sm font-semibold animate-pulse">🔊 AI is speaking...</p>
+                       <button onClick={interruptAI} className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1 rounded-full text-xs font-semibold transition-all shadow-sm">
+                         ✋ Interrupt (Press Space)
+                       </button>
+                    </div>
+                  )}
+                  {isListening && <p className="text-green-400 text-sm font-semibold flex justify-center items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Listening to your answer...</p>}
                   {!isSpeaking && !isListening && <p className="text-gray-400 text-sm">Ready for next question</p>}
                 </div>
 
