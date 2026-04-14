@@ -53,6 +53,8 @@ export default function MockInterviewPage() {
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isFollowUp, setIsFollowUp] = useState(false);
+  const [followUpQuestionText, setFollowUpQuestionText] = useState('');
   const [error, setError] = useState('');
   const [interviewDuration, setInterviewDuration] = useState(0);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
@@ -65,6 +67,8 @@ export default function MockInterviewPage() {
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentQuestionIndexRef = useRef(0);
   const questionsRef = useRef<Question[]>([]);
+  const isFollowUpRef = useRef(false);
+  const followUpTextRef = useRef('');
 
   useEffect(() => {
     currentQuestionIndexRef.current = currentQuestionIndex;
@@ -73,6 +77,14 @@ export default function MockInterviewPage() {
   useEffect(() => {
     questionsRef.current = questions;
   }, [questions]);
+
+  useEffect(() => {
+    isFollowUpRef.current = isFollowUp;
+  }, [isFollowUp]);
+
+  useEffect(() => {
+    followUpTextRef.current = followUpQuestionText;
+  }, [followUpQuestionText]);
 
   // Re-attach camera stream whenever the video element changes (e.g. phase/interviewStarted changes)
   useEffect(() => {
@@ -221,12 +233,57 @@ export default function MockInterviewPage() {
     }
   };
 
+  const generateFollowUp = async (previousQuestion: string, candidateAnswer: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/mock-interview/follow-up`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ previousQuestion, candidateAnswer }),
+      });
+      const data = await response.json();
+      if (data.success && data.followUp) {
+        setFollowUpQuestionText(data.followUp);
+        setIsFollowUp(true);
+        // Update refs immediately so speakQuestion reads the correct values
+        followUpTextRef.current = data.followUp;
+        isFollowUpRef.current = true;
+        setTimeout(() => speakQuestion(currentQuestionIndexRef.current), 500);
+      } else {
+        // Fallback: just continue to next question
+        const nextIndex = currentQuestionIndexRef.current + 1;
+        if (nextIndex < questionsRef.current.length) {
+          setCurrentQuestionIndex(nextIndex);
+          setTimeout(() => speakQuestion(nextIndex), 1000);
+        } else {
+          finishMockInterview();
+        }
+      }
+    } catch (err) {
+      console.error('Follow up error', err);
+      // Fallback: just continue to next question
+      const nextIndex = currentQuestionIndexRef.current + 1;
+      if (nextIndex < questionsRef.current.length) {
+        setCurrentQuestionIndex(nextIndex);
+        setTimeout(() => speakQuestion(nextIndex), 1000);
+      } else {
+        finishMockInterview();
+      }
+    }
+  };
+
   const speakQuestion = (idx: number) => {
     stopListening();
     if (idx >= questionsRef.current.length) return;
-    
+
+    const questionText = isFollowUpRef.current
+      ? followUpTextRef.current
+      : questionsRef.current[idx].question;
+
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(questionsRef.current[idx].question);
+    const utterance = new SpeechSynthesisUtterance(questionText);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     setIsSpeaking(true);
@@ -267,7 +324,42 @@ export default function MockInterviewPage() {
     }
 
     setError('');
+
+    if (isFollowUp) {
+      // Save follow-up answer
+      setResponses(prev => [
+        ...prev,
+        { question: followUpQuestionText, answer, type: q.type },
+      ]);
+
+      setIsFollowUp(false);
+      setFollowUpQuestionText('');
+      isFollowUpRef.current = false;
+      followUpTextRef.current = '';
+      setCurrentAnswer('');
+      setCodeAnswer('');
+
+      const nextIndex = idx + 1;
+      if (nextIndex < questionsRef.current.length) {
+        setCurrentQuestionIndex(nextIndex);
+        setTimeout(() => speakQuestion(nextIndex), 1000);
+      } else {
+        finishMockInterview();
+      }
+      return;
+    }
+
+    // Save normal answer
     setResponses(prev => [...prev, { question: q.question, answer, type: q.type }]);
+
+    // Ask follow-up for non-coding questions (~70% chance)
+    if (q.type !== 'coding' && Math.random() > 0.3) {
+      generateFollowUp(q.question, answer);
+      setCurrentAnswer('');
+      setCodeAnswer('');
+      return;
+    }
+
     setCurrentAnswer('');
     setCodeAnswer('');
 
@@ -546,8 +638,18 @@ export default function MockInterviewPage() {
 
                 {/* Question */}
                 <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-                  <span className="px-3 py-1 bg-purple-600 text-sm rounded-full">{questions[currentQuestionIndex]?.type?.toUpperCase()}</span>
-                  <h2 className="text-xl font-semibold mt-3">{questions[currentQuestionIndex]?.question}</h2>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-3 py-1 bg-purple-600 text-sm rounded-full">{questions[currentQuestionIndex]?.type?.toUpperCase()}</span>
+                    {isFollowUp && <span className="px-3 py-1 bg-blue-500 text-sm rounded-full">FOLLOW-UP</span>}
+                  </div>
+                  <h2 className="text-xl font-semibold">
+                    {isFollowUp ? followUpQuestionText : questions[currentQuestionIndex]?.question}
+                  </h2>
+                  {isFollowUp && (
+                    <p className="text-purple-400 mt-3 text-sm font-semibold">
+                      ✨ AI Follow Up — probing deeper into your previous answer
+                    </p>
+                  )}
                 </div>
 
                 {/* Answer */}

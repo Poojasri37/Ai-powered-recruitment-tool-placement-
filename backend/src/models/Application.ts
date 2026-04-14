@@ -74,4 +74,9 @@ const applicationSchema = new mongoose.Schema<IApplication>(
   { timestamps: true }
 );
 
+// Indexes for common query patterns (critical for 50+ concurrent users)
+applicationSchema.index({ job: 1, status: 1 });       // recruiter dashboard, job applications
+applicationSchema.index({ candidate: 1, status: 1 }); // candidate dashboard, interviews
+applicationSchema.index({ status: 1, interviewDate: 1 }); // upcoming interviews queries
+
 export const Application = mongoose.model<IApplication>('Application', applicationSchema);

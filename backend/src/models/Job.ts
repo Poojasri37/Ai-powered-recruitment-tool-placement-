@@ -34,4 +34,7 @@ const jobSchema = new mongoose.Schema<IJob>(
   { timestamps: true }
 );
 
+// Index for fast recruiter lookups (dashboard, job listings)
+jobSchema.index({ recruiter: 1 });
+
 export const Job = mongoose.model<IJob>('Job', jobSchema);

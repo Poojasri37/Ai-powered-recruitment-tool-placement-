@@ -311,8 +311,11 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
     let evaluatedResponses = responses;
 
     try {
-      evaluatedResponses = await Promise.all(
-        responses.map(async (r: any) => {
+      // Process evaluations sequentially to avoid overwhelming the AI queue
+      // The aiQueue handles concurrency limits and rate-limit retries internally
+      evaluatedResponses = [];
+      for (const r of responses) {
+        try {
           const result = await evaluateInterviewResponse(
             r.question,
             r.answer,
@@ -320,13 +323,20 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
             job.description,
             job.requiredSkills
           );
-          return {
+          evaluatedResponses.push({
             ...r,
             aiEvaluation: result.evaluation,
             score: result.score,
-          };
-        })
-      );
+          });
+        } catch (singleEvalError) {
+          console.error('Error evaluating single response:', singleEvalError);
+          evaluatedResponses.push({
+            ...r,
+            aiEvaluation: 'Evaluation pending - will be reviewed manually',
+            score: 0,
+          });
+        }
+      }
     } catch (evalError) {
       console.error('Error during AI evaluation:', evalError);
       // Continue with empty evaluations if AI fails

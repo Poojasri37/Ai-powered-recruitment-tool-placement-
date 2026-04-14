@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk';
 import 'dotenv/config';
+import { aiQueue } from './aiQueue';
 
 // Initialize Groq client
 const groq = new Groq({
@@ -7,28 +8,53 @@ const groq = new Groq({
 });
 
 const MODEL_NAME = 'llama-3.3-70b-versatile';
+const AI_TIMEOUT_MS = 30000; // 30 second timeout per AI call
 
+/**
+ * Wraps a promise with a timeout. Rejects if the promise doesn't resolve within the given ms.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string = 'AI call'): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+/**
+ * Raw Groq API call — NOT rate-limited. Use generateGroqContentQueued for all external-facing calls.
+ */
+async function generateGroqContentRaw(prompt: string, jsonMode: boolean = false): Promise<string> {
+  const completion = await groq.chat.completions.create({
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+    model: MODEL_NAME,
+    temperature: 0.7,
+    response_format: jsonMode ? { type: 'json_object' } : undefined,
+  });
+
+  const content = completion.choices[0]?.message?.content || '';
+  return content;
+}
+
+/**
+ * Rate-limited, retry-aware, timeout-protected Groq API call.
+ * All exported functions should use this instead of calling Groq directly.
+ */
 async function generateGroqContent(prompt: string, jsonMode: boolean = false): Promise<string> {
-  try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      model: MODEL_NAME,
-      temperature: 0.7,
-      response_format: jsonMode ? { type: 'json_object' } : undefined,
-    });
-
-    const content = completion.choices[0]?.message?.content || '';
-    if (jsonMode) console.log('DEBUG GROQ RAW:', content.substring(0, 200));
-    return content;
-  } catch (error) {
-    console.error('Groq API error:', error);
-    throw error;
-  }
+  return aiQueue.enqueue(() =>
+    withTimeout(
+      generateGroqContentRaw(prompt, jsonMode),
+      AI_TIMEOUT_MS,
+      'Groq API'
+    )
+  );
 }
 
 export async function evaluateInterviewResponse(

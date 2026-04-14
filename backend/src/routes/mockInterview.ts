@@ -59,23 +59,42 @@ router.post('/upload-resume', upload.single('resume'), async (req: AuthRequest, 
     // Get all jobs and calculate AI match scores
     const jobs = await Job.find().populate('recruiter', 'name email');
     
+    // Pre-filter: rank jobs by keyword overlap to limit expensive AI calls
+    const resumeTextLower = (parsedData.rawText || JSON.stringify(parsedData)).toLowerCase();
+    const jobsWithLocalScore = jobs.map(job => {
+      const skillOverlap = job.requiredSkills.filter(
+        (skill: string) => resumeTextLower.includes(skill.toLowerCase())
+      ).length;
+      const titleMatch = resumeTextLower.includes(job.title.toLowerCase()) ? 2 : 0;
+      return { job, localScore: skillOverlap + titleMatch };
+    });
+    
+    // Only send top 10 candidates to the expensive AI scoring
+    jobsWithLocalScore.sort((a, b) => b.localScore - a.localScore);
+    const topCandidates = jobsWithLocalScore.slice(0, 10);
+
     const matchedJobs = [];
-    for (const job of jobs) {
-      const score = await calculateAIMatchScore(
-        parsedData.rawText || JSON.stringify(parsedData),
-        job.title,
-        job.description,
-        job.requiredSkills
-      );
-      if (score > 20) { // Only show jobs with > 20% match
-        matchedJobs.push({
-          _id: job._id,
-          title: job.title,
-          description: job.description,
-          requiredSkills: job.requiredSkills,
-          recruiter: job.recruiter,
-          matchScore: score,
-        });
+    for (const { job } of topCandidates) {
+      try {
+        const score = await calculateAIMatchScore(
+          parsedData.rawText || JSON.stringify(parsedData),
+          job.title,
+          job.description,
+          job.requiredSkills
+        );
+        if (score > 20) { // Only show jobs with > 20% match
+          matchedJobs.push({
+            _id: job._id,
+            title: job.title,
+            description: job.description,
+            requiredSkills: job.requiredSkills,
+            recruiter: job.recruiter,
+            matchScore: score,
+          });
+        }
+      } catch (matchError) {
+        console.error(`Error scoring job ${job.title}:`, matchError);
+        // Skip this job instead of failing the entire request
       }
     }
 
@@ -121,6 +140,25 @@ router.post('/generate-questions', async (req: AuthRequest, res: Response, next:
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// @route POST /api/mock-interview/follow-up
+// @desc  Generate a follow-up question based on the candidate's answer
+router.post('/follow-up', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { previousQuestion, candidateAnswer } = req.body;
+    if (!previousQuestion || !candidateAnswer) {
+      res.status(400).json({ error: 'Missing previousQuestion or candidateAnswer' });
+      return;
+    }
+
+    const { generateFollowUpQuestion } = await import('../utils/geminiAI');
+    const followUp = await generateFollowUpQuestion(previousQuestion, candidateAnswer);
+
+    res.status(200).json({ success: true, followUp });
+  } catch (err) {
+    next(err);
   }
 });
 
