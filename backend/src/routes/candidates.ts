@@ -50,6 +50,33 @@ const upload = multer({
   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880') },
 });
 
+// @route   POST /api/candidates/parse
+// @desc    Parse resume without saving (for preview)
+router.post('/parse', authenticateToken, upload.single('resume'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return next(new AppError(400, 'Please upload a resume file'));
+    }
+
+    const parsedData = await parseResume(req.file.path);
+    
+    // Cleanup the temporary file immediately
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error('Error deleting temp file:', err);
+    });
+
+    res.status(200).json({
+      success: true,
+      data: parsedData
+    });
+  } catch (error) {
+    if (req.file) {
+      fs.unlink(req.file.path, () => {});
+    }
+    next(error);
+  }
+});
+
 // Upload resume
 router.post(
   '/upload',

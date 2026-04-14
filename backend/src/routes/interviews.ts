@@ -60,8 +60,7 @@ router.get('/questions-by-session/:sessionId', authenticateToken, async (req: Re
 
     const job = session.jobId as any;
     const resume = session.resumeId as any;
-    // resume.parsedData might contain rawText if we updated it, or we can use stringified parsedData
-    const resumeContext = resume.parsedData?.rawText || JSON.stringify(resume.parsedData);
+    const resumeContext = resume.rawText || JSON.stringify(resume);
 
     const questions = await generateInterviewQuestions(
       job.title,

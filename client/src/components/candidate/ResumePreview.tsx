@@ -77,12 +77,20 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ initialSkills, onU
                     )}
                 </div>
 
-                {/* Mock Experience Section (Static for now as mostly parsing feedback) */}
-                <div className="opacity-70">
-                    <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Experience (Preview)</h4>
-                    <div className="border-l-2 border-gray-200 pl-4 py-1">
-                        <p className="font-bold text-gray-800">Software Engineer</p>
-                        <p className="text-xs text-gray-500">Tech Corp Inc. • 2020 - Present</p>
+                {/* Experience Section */}
+                <div>
+                    <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Extracted Experience</h4>
+                    <div className="space-y-4">
+                        {initialExperience && initialExperience.length > 0 ? (
+                            initialExperience.map((exp, idx) => (
+                                <div key={idx} className="border-l-4 border-blue-500 pl-4 py-1 bg-gray-50/50 rounded-r-lg p-2">
+                                    <p className="font-bold text-gray-800 text-sm">{exp.title}</p>
+                                    <p className="text-xs text-gray-500 font-medium">{exp.company} • {exp.duration}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-gray-500 italic">No professional experience clearly identified.</p>
+                        )}
                     </div>
                 </div>
             </div>
