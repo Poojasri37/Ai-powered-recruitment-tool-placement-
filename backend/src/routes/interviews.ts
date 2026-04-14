@@ -347,8 +347,10 @@ router.put('/:sessionId/submit', authenticateToken, async (req: Request, res: Re
       }));
     }
 
-    // Calculate overall score as the accumulated SUM of all per-question scores (each out of 10)
-    const calculatedScore = evaluatedResponses.reduce((acc: number, r: any) => acc + (r.score || 0), 0);
+    // Calculate overall score as a normalized percentage out of 100
+    const totalScore = evaluatedResponses.reduce((acc: number, r: any) => acc + (r.score || 0), 0);
+    const maxPossibleScore = evaluatedResponses.length * 10;
+    const calculatedScore = maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 0;
 
     // Generate interview summary using Gemini
     let aiSummary = summary;

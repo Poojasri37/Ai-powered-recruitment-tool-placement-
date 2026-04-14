@@ -294,7 +294,7 @@ export const ApplicationDetailPage: React.FC = () => {
                       </div>
                       <div className="text-xs font-bold text-indigo-400 uppercase tracking-wide mb-1">AI Evaluation</div>
                       <div className="text-3xl font-bold text-indigo-900 mb-2">{application.interviewResults.score}/100</div>
-                      <p className="text-sm text-indigo-800 leading-snug bg-white/50 p-3 rounded-lg border border-indigo-100">
+                      <p className="text-sm text-indigo-800 leading-snug bg-white/50 p-3 rounded-lg border border-indigo-100 whitespace-pre-wrap">
                         {application.interviewResults.summary}
                       </p>
                     </div>

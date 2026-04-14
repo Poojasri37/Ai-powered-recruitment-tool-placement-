@@ -178,10 +178,12 @@ ${results.results.transcript}
         </div>
 
         {/* Score Card */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-8 mb-8">
-          <p className="text-blue-100 mb-2">Overall Interview Score (Accumulated Total)</p>
-          <p className="text-5xl font-bold mb-2">{computedScore} <span className="text-2xl font-normal text-blue-200">/ {results.results.responses.length * 10}</span></p>
-          <p className="text-blue-100">{results.results.summary}</p>
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-8 mb-8 shadow-sm">
+          <p className="text-blue-100 mb-2 font-medium uppercase tracking-wide text-xs">Overall Interview Score</p>
+          <p className="text-5xl font-bold mb-4">{computedScore} <span className="text-2xl font-normal text-blue-200">/ {results.results.responses.length * 10}</span></p>
+          <div className="bg-white/10 p-4 rounded-xl border border-white/20">
+             <p className="text-white whitespace-pre-wrap leading-relaxed">{results.results.summary}</p>
+          </div>
         </div>
 
         {/* Per-Question Score Breakdown */}
