@@ -72,7 +72,7 @@ const extractPhone = (text: string): string => {
   return match ? match[0] : '';
 };
 
-const extractSkills = (text: string): string[] => {
+export const extractSkills = (text: string): string[] => {
   const skillKeywords = [
     'JavaScript',
     'TypeScript',

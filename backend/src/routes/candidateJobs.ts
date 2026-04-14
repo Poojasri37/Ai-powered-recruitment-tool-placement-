@@ -11,6 +11,7 @@ import fs from 'fs';
 import { parseResume } from '../utils/parseResume';
 import { calculateMatchScore } from '../utils/matching';
 import { calculateAIMatchScore } from '../utils/geminiAI';
+import { sendApplicationReceivedEmail } from '../utils/emailService';
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -94,7 +95,7 @@ router.post(
         return next(new AppError(400, 'Please upload a resume file'));
       }
 
-      const job = await Job.findById(req.params.jobId);
+      const job = await Job.findById(req.params.jobId).populate('recruiter');
       if (!job) {
         return next(new AppError(404, 'Job not found'));
       }
@@ -163,6 +164,19 @@ router.post(
         application,
         matchScore,
       });
+
+      // Send email received notification
+      try {
+        const recruiterName = (job.recruiter as any)?.name || 'Hiring Team';
+        await sendApplicationReceivedEmail(
+          parsedData.name || 'Candidate',
+          parsedData.email,
+          job.title,
+          recruiterName
+        );
+      } catch (emailErr) {
+        console.error('Failed to send application received email:', emailErr);
+      }
     } catch (error) {
       if (req.file) {
         fs.unlink(req.file.path, (err) => {

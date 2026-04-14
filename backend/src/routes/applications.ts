@@ -3,6 +3,11 @@ import { Application } from '../models/Application';
 import { Job } from '../models/Job';
 import { authenticateToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import { 
+  sendInterviewScheduledEmail, 
+  sendApplicationStatusUpdateEmail 
+} from '../utils/emailService';
+import { User } from '../models/User';
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -190,6 +195,22 @@ router.put('/:appId/status', authenticateToken, async (req: AuthRequest, res: Re
 
     await application.save();
 
+    // Send status update email
+    try {
+      if (application.candidate && application.job) {
+        const message = notes || `Your application status for ${(application.job as any).title} has been updated to ${status.replace('_', ' ')}.`;
+        await sendApplicationStatusUpdateEmail(
+          (application.candidate as any).name,
+          (application.candidate as any).email,
+          (application.job as any).title,
+          status,
+          message
+        );
+      }
+    } catch (emailErr) {
+      console.error('Failed to send status update email:', emailErr);
+    }
+
     res.status(200).json({
       success: true,
       message: 'Application status updated',
@@ -226,8 +247,23 @@ router.post('/:appId/schedule-interview', authenticateToken, async (req: AuthReq
 
     await application.save();
 
-    // TODO: Send email notification to candidate
-    // TODO: Create Google Calendar event
+    // Send email notification to candidate
+    try {
+      const recruiter = await User.findById(req.userId);
+      if (recruiter && application.candidate && application.job) {
+        await sendInterviewScheduledEmail(
+          (application.candidate as any).name,
+          (application.candidate as any).email,
+          (application.job as any).title,
+          application.interviewDate!,
+          application.interviewLink!,
+          recruiter.name
+        );
+      }
+    } catch (emailErr) {
+      console.error('Failed to send interview email:', emailErr);
+      // Don't fail the request if email fails
+    }
 
     res.status(200).json({
       success: true,

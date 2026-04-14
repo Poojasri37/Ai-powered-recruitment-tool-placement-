@@ -253,7 +253,7 @@ router.post(
         return {
           ...match,
           jobTitle: job?.title || 'Unknown Job',
-          company: 'Acme Corp', // Placeholder if not in Job model
+          company: job?.company || 'RecruitAI Client',
         };
       });
 

@@ -12,14 +12,15 @@ const router = Router();
 // Create job
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { title, description, requiredSkills } = req.body;
+    const { title, company, description, requiredSkills } = req.body;
 
-    if (!title || !description || !requiredSkills) {
-      return next(new AppError(400, 'Please provide all required fields'));
+    if (!title || !company || !description || !requiredSkills) {
+      return next(new AppError(400, 'Please provide all required fields (title, company, description, requiredSkills)'));
     }
 
     const job = new Job({
       title,
+      company,
       description,
       requiredSkills,
       recruiter: req.userId,

@@ -7,6 +7,7 @@ import { getAuthToken } from '../utils/auth';
 export const JobFormPage: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
+    company: '',
     department: '',
     description:'',
     location: '',
@@ -97,6 +98,21 @@ export const JobFormPage: React.FC = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   placeholder="e.g., Senior React Developer"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  name="company"
+                  value={formData.company}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  placeholder="e.g., Google or Acme Corp"
                   required
                 />
               </div>

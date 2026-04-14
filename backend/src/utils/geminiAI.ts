@@ -1,6 +1,8 @@
 import Groq from 'groq-sdk';
 import 'dotenv/config';
 import { aiQueue } from './aiQueue';
+import { calculateMatchScore } from './matching';
+import { extractSkills } from './parseResume';
 
 // Initialize Groq client
 const groq = new Groq({
@@ -143,9 +145,17 @@ Return ONLY valid JSON.`;
 
     const jsonStr = await generateGroqContent(prompt, true);
     const parsed = JSON.parse(jsonStr);
+    
+    let score = 2;
+    if (typeof parsed.score === 'number') {
+      score = parsed.score;
+    } else if (typeof parsed.score === 'string') {
+      score = parseInt(parsed.score) || 2;
+    }
+
     return {
       evaluation: parsed.evaluation || 'Unable to generate evaluation',
-      score: typeof parsed.score === 'number' ? Math.min(10, Math.max(1, parsed.score)) : 2,
+      score: Math.min(10, Math.max(1, score)),
     };
   } catch (error) {
     console.error('Groq evaluation error:', error);
@@ -328,7 +338,7 @@ Only return jobs with score > 40.`;
     const jsonStr = await generateGroqContent(prompt, true);
     const parsed = JSON.parse(jsonStr);
 
-    return [];
+    return parsed.matches || [];
   } catch (error) {
     console.error('Groq job matching error:', error);
     return [];
@@ -355,10 +365,25 @@ export async function calculateAIMatchScore(
 
     const jsonStr = await generateGroqContent(prompt, true);
     const parsed = JSON.parse(jsonStr);
-    return typeof parsed.score === 'number' ? parsed.score : 0;
+    
+    // Robust parsing for score (handles both number and string)
+    const score = typeof parsed.score === 'number' ? parsed.score : parseInt(parsed.score);
+    
+    if (!isNaN(score) && score > 0) {
+      return Math.min(100, score);
+    }
+
+    // Fallback to manual matching if AI returns 0 or invalid score
+    const candidateSkills = extractSkills(resumeText);
+    return calculateMatchScore(candidateSkills, requiredSkills);
   } catch(error) {
-    console.error('Groq AIMatchScore error', error);
-    return 0;
+    console.error('Groq AIMatchScore error, falling back to manual scoring', error);
+    try {
+      const candidateSkills = extractSkills(resumeText);
+      return calculateMatchScore(candidateSkills, requiredSkills);
+    } catch (fallbackError) {
+      return 0;
+    }
   }
 }
 

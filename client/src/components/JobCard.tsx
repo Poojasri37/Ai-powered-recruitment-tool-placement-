@@ -56,9 +56,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onUpdate, index = 0 }) => {
           </span>
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 mb-3 leading-tight group-hover:text-primary transition-colors cursor-pointer">
+        <h3 className="text-xl font-bold text-gray-900 mb-1 leading-tight group-hover:text-primary transition-colors cursor-pointer">
           {job.title}
         </h3>
+        <p className="text-sm font-semibold text-gray-500 mb-3">{job.company}</p>
 
         <div className="flex flex-wrap gap-y-2 gap-x-4 mb-5 text-xs text-gray-500 font-medium">
           <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
