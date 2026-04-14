@@ -34,36 +34,7 @@ interface ApplicationDetail {
     summary: string;
   };
   notes?: string;
-  create
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  dAt?: string;
+  createdAt?: string;
 }
 
 export const ApplicationDetailPage: React.FC = () => {
@@ -248,7 +219,7 @@ export const ApplicationDetailPage: React.FC = () => {
             <div className="md:col-span-2 space-y-8">
 
               {/* Contact Info */}
-              <div className="grd grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Contact Email</label>
                   <div className="flex items-center gap-2 text-gray-800 font-medium bg-white/50 p-3 rounded-xl border border-gray-100">
