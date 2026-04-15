@@ -53,11 +53,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, onLogout }) => {
             {/* Sidebar Container */}
             <aside
                 className={`
-          fixed top-0 left-0 z-100 h-full w-150
+          fixed top-0 left-0 z-100 h-screen w-72
           bg-white/80 backdrop-blur-xl border-r border-white/20 shadow-2xl
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 md:static
+          md:translate-x-0 md:sticky md:top-0
         `}
             >
                 <div className="flex flex-col h-full bg-gradient-to-b from-white/50 to-transparent">
